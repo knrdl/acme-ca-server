@@ -150,8 +150,8 @@ async def revoke_cert(serial_number: str, revocations: set[tuple[str, datetime]]
     ...
 ```
 
-* serial_number: certificate serial number to revoke as hex value
-* revocations: all revoked certificates including the one specified by `serial_number`. It's a set of tuples containing `(serial_number, revocation_date)`
+* `serial_number`: certificate serial number to revoke as hex value
+* `revocations`: all revoked certificates including the one specified by `serial_number`. It's a set of tuples containing `(serial_number, revocation_date)`
 * *returns*: no error on success
 
 A custom CA backend must also handle the CRL (certificate revocation list) distribution.
