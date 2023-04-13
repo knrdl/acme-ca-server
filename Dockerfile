@@ -1,4 +1,4 @@
-FROM docker.io/python:3.11-slim
+FROM docker.io/python:3.11-alpine
 
 RUN adduser --no-create-home --disabled-password appuser
 
