@@ -1,0 +1,17 @@
+http:
+  routers:
+    router0:
+      entryPoints:
+      - web
+      - web-secure
+      service: service-foo
+      rule: Host(`host20.example.org`)
+      tls:
+        certResolver: myresolver
+
+  services:
+    service-foo:
+      loadBalancer:
+        servers:
+        - url: https://example.org
+        passHostHeader: false

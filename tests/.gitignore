@@ -1,0 +1,7 @@
+certbot/
+traefikdata/
+caddydata/
+
+ca.key
+ca.pem
+*.xdb

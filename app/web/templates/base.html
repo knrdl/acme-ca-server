@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% block head %}
+    <link rel="stylesheet" href="libs/milligram.min.css"
+        integrity="sha512-xiunq9hpKsIcz42zt0o2vCo34xV0j6Ny8hgEylN3XBglZDtTZ2nwnqF/Z/TTCc18sGdvCjbFInNd++6q3J0N6g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <title>{% block title %}{% endblock %}</title>
+    <style>
+        .container {
+            margin-top: 2rem;
+        }
+
+        h1 {
+            border-bottom: 1px solid gray;
+        }
+    </style>
+    {% endblock %}
+</head>
+
+<body class="container">
+    <a href=".">
+        <h1>{{app_title}}</h1>
+    </a>
+    <main>{% block content %}{% endblock %}</main>
+</body>
+
+</html>

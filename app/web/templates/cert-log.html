@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Certificates{% endblock %}
+{% block head %}
+{{ super() }}
+<style type="text/css">
+    td {
+        padding-top: .5rem;
+        padding-bottom: .5rem;
+    }
+
+    ul {
+        display: inline;
+        list-style: disc;
+    }
+
+    li {
+        display: inline list-item;
+    }
+
+    li {
+        margin-left: 1rem;
+    }
+
+    .valid {
+        background-color: #22c55e;
+    }
+
+    .invalid {
+        background-color: #dc2626;
+    }
+
+    tbody tr:hover {
+        background-color: #eee;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<h2>Certificates</h2>
+<table>
+    <thead>
+        <tr>
+            <th></th>
+            <th>Serial Number</th>
+            <th>Created At</th>
+            <th>Valid Until</th>
+            <th>Age (Days)</th>
+            <th>Revoked At</th>
+            <th>Domains</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cert in certs %}
+        <tr>
+            <td class="{{'valid' if cert.is_valid else 'invalid' }}">&nbsp;</td>
+            <td><a href="certificates/{{cert.serial_number}}"><code>{{cert.serial_number}}</code></a></td>
+            <td>{{cert.not_valid_before.strftime('%Y-%m-%d')}}</td>
+            <td>{{cert.not_valid_after.strftime('%Y-%m-%d')}}</td>
+            <td>
+                {% if cert.is_valid %}
+                {{cert.age.days}} / {{cert.lifetime.days}}
+                {% else %}
+                -
+                {% endif %}
+            </td>
+            <td>
+                {% if cert.revoked_at %}
+                {{cert.revoked_at.strftime('%Y-%m-%d')}}
+                {% else %}
+                -
+                {% endif %}
+            </td>
+            <td>
+                <ul>
+                    {% for domain in cert.domains %}
+                    <li>
+                        <a href="https://{{domain}}">{{domain}}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

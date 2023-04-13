@@ -1,0 +1,19 @@
+<h1>{{app_title}}</h1>
+<h2>Certificate Expiration</h2>
+
+Your server certificate <b>has expired</b>.
+If this is not intended please check and fix your certificate renewal automation.
+
+Expiration date: {{expires_at.isoformat()}}
+
+Affected domains:
+
+<ul>
+    {% for domain in domains %}
+    <li>
+        <a href="https://{{domain}}">{{domain}}</a>
+    </li>
+    {% endfor %}
+</ul>
+
+If the certificate expiration is intended no action needs to be taken.

@@ -1,0 +1,1 @@
+[{{app_title}}] New ACME account created
