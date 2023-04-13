@@ -18,7 +18,7 @@ jobs:
 
       - name: apply version tag
         run: |
-          if [ "${{ github.ref_type }} == "tag" ]; then
+          if [ "${{ github.ref_type }}" == "tag" ]; then
             sed -i "s/'0.0.0'/'${{ github.ref_name }}'/" app/main.py
           else
             sed -i "s/'0.0.0'/'edge'/" app/main.py

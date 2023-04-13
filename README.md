@@ -98,7 +98,7 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 
 ### Mail
 
-Templates consist of `subject.txt` and `body.html`:
+Templates consist of `subject.txt` and `body.html` (see [here](./tree/main/app/mail/templates)):
 * /app/mail/templates/**cert-expired-info**/{subject.txt,body.html}
 * /app/mail/templates/**cert-expires-warning**/{subject.txt,body.html}
 * /app/mail/templates/**new-account-info**/{subject.txt,body.html}
@@ -114,13 +114,13 @@ Parameters:
 
 Custom files to be served by the http server can be placed in `/app/web/www`.
 
-Overwrite templates:
-* /app/web/templates/cert-log.html
-* /app/web/templates/index.html
+Overwrite templates (see [here](./tree/main/app/web/templates)):
+* /app/web/templates/cert-log.html (Certificate Listing)
+* /app/web/templates/index.html (Startpage)
 
 ## Provide a custom CA implementation
 
-First set env var `CA_ENABLED=False`. Then overwrite the file `/app/ca/service.py` in the docker image. It must provide two functions:
+First set env var `CA_ENABLED=False`. Then overwrite the file `/app/ca/service.py` (see [here](./blob/main/app/ca/service.py)) in the docker image. It must provide two functions:
 
 ### 1. `sign_csr()`
 

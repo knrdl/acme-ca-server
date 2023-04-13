@@ -1,4 +1,4 @@
-__version__ = '0.0.0'  # replaced during build
+__version__ = '0.0.0'  # replaced during build, do not change
 
 from contextlib import asynccontextmanager
 from pathlib import Path
