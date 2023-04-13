@@ -20,8 +20,8 @@ class NewOrderDomain(BaseModel):
 
 class NewOrderPayload(BaseModel):
     identifiers: conlist(NewOrderDomain, min_items=1)
-    notBefore: Optional[datetime] = None  # not evaluated
-    notAfter: Optional[datetime] = None  # not evaluated
+    notBefore: Optional[datetime] = None  # todo: not evaluated (optional)
+    notAfter: Optional[datetime] = None  # todo: not evaluated (optional)
 
 class FinalizeOrderPayload(BaseModel):
     csr: constr(min_length=1, max_length=1*1024**2)
