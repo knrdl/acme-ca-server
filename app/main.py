@@ -21,8 +21,7 @@ from config import settings
 async def lifespan(app: FastAPI):
     await db.connect()
     await db.migrations.run()
-    if settings.ca.enabled:
-        await ca.init()
+    await ca.init()
     await acme.start_cronjobs()
     yield
     await db.disconnect()

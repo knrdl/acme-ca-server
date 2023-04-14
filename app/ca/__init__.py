@@ -10,11 +10,10 @@ from logger import logger
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 
-from . import cronjob
-
 router = APIRouter(prefix='/ca', tags=['ca'])
 
 if settings.ca.enabled:
+    from . import cronjob
     from .service import build_crl_sync
     from cryptography.fernet import Fernet
 
@@ -58,4 +57,6 @@ if settings.ca.enabled:
                 raise Exception('internal ca is enabled but no CA certificate is registered and active. Please import one first.')
 
         await cronjob.start()
-
+else:
+    async def init():
+        logger.info('Builtin CA is disabled, relying on custom CA implementation')
