@@ -74,7 +74,7 @@ class AcmeSettings(BaseSettings):
         env_prefix = 'acme_'
 
 class Settings(BaseSettings):
-    external_uri: HttpUrl
+    external_uri: AnyHttpUrl
     db_dsn: PostgresDsn
     acme: AcmeSettings = AcmeSettings()
     ca: CaSettings = CaSettings()
