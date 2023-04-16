@@ -12,9 +12,7 @@ jobs:
       - uses: actions/checkout@v2
       - id: imagetag
         run: |
-          tag=$(echo "${{github.ref_name}}" | cut -dv -f2)
-          echo "Docker Image Tag: $tag"
-          echo "::set-env name=tag::$tag"
+          echo "DOCKER_IMAGE_TAG=$(echo ${{github.ref_name}} | cut -dv -f2)" >> $GITHUB_ENV
       - name: Create Release
         id: create_release
         if: github.event_name != 'pull_request'
@@ -28,5 +26,5 @@ jobs:
           prerelease: false
           body: |
             Docker images:
-            - ${{ github.repository }}:${{steps.imagetag.outputs.tag}}
-            - ghcr.io/${{ github.repository }}:${{steps.imagetag.outputs.tag}}
+            - ${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
+            - ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
