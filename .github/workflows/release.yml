@@ -10,8 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - id: imagetag
+        run: |
+          tag=$(echo "${{github.ref_name}}" | cut -dv -f2)
       - name: Create Release
         id: create_release
+        if: github.event_name != 'pull_request'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -20,3 +24,7 @@ jobs:
           release_name: ${{ github.ref_name }}
           draft: false
           prerelease: false
+          body: |
+            Docker images:
+            - ${{ github.repository }}:${{steps.imagetag.outputs.tag}}
+            - ghcr.io/${{ github.repository }}:${{steps.imagetag.outputs.tag}}
