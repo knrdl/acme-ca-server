@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Domains{% endblock %}
+{% block head %}
+{{ super() }}
+<style type="text/css">
+    td {
+        padding-top: .5rem;
+        padding-bottom: .5rem;
+    }
+
+    ul {
+        display: inline;
+        list-style: disc;
+    }
+
+    li {
+        display: inline list-item;
+    }
+
+    li {
+        margin-left: 1rem;
+    }
+
+    .valid {
+        background-color: #22c55e;
+    }
+
+    .invalid {
+        background-color: #dc2626;
+    }
+
+    tbody tr:hover {
+        background-color: #eee;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<h2>Domains</h2>
+<table>
+    <thead>
+        <tr>
+            <th></th>
+            <th>Domain</th>
+            <th>First requested at</th>
+            <th>Newest certificate valid until</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for domain in domains %}
+        <tr>
+            <td class="{{'valid' if domain.is_valid else 'invalid' }}">&nbsp;</td>
+            <td><a href="https://{{domain.domain_name}}" target="_blank" rel="noopener noreferrer">{{domain.domain_name}}</a></td>
+            <td>{{domain.first_requested_at.strftime('%Y-%m-%d')}}</td>
+            <td>{{domain.expires_at.strftime('%Y-%m-%d')}}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -76,9 +76,9 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 | ACME_MAIL_TARGET_REGEX        | any mail address       | restrict the email address which must be provided to the ACME client by the user. E.g. `[^@]+@mydomain\.org` only allows mail addresses from mydomain.org             |
 | ACME_TARGET_DOMAIN_REGEX        | any non-wildcard domain name       | restrict the domain names for which certificates can be requested via ACME. E.g. `[^\*]+\.mydomain\.org` only allows domain names from mydomain.org             |
 | CA_ENABLED        | `True`       | whether the internal CA is enabled, set this to false when providing a custom CA implementation  |
-| CA_CERT_LIFETIME        | 60 days (`60 00:00`)       | how often certs will be replaced by the ACME client  |
-| CA_CRL_LIFETIME        | 7 days (`7 00:00`)       | how often the certificate revocation list will be rebuilt  |
-| CA_ENCRYPTION_KEY        | will be generated if not provided       | the key to protect the CA private keys on rest (when stored in db)  |
+| CA_CERT_LIFETIME        | 60 days (`60 00:00`)       | how often certs must be replaced by the ACME client  |
+| CA_CRL_LIFETIME        | 7 days (`7 00:00`)       | how often the certificate revocation list will be rebuilt (despite rebuild on every certificate revocation)  |
+| CA_ENCRYPTION_KEY        | will be generated if not provided       | the key to protect the CA private keys on rest (always stored encrypted in the database)  |
 | MAIL_ENABLED        | `False`       | if sending emails is enabled              |
 | MAIL_HOST        | `None`       | smtp host  |
 | MAIL_PORT        | `None`       | smtp port (default depends on encryption method)  |
@@ -90,7 +90,7 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 | MAIL_WARN_BEFORE_CERT_EXPIRES        | 20 days (`20 00:00`)     | when to warn the user via mail that a certificate has not been renewed in time (can be disabled by providing `false` as value)  |
 | MAIL_NOTIFY_WHEN_CERT_EXPIRED        | `True`       | whether to inform the user that a certificate finally expired which has not been renewed in time  |
 | WEB_ENABLED        | `True` | whether to also provide UI endpoints or just the ACME functionality |
-| WEB_ENABLE_PUBLIC_CERT_LOG        | `False` | whether to show a transparency log of all certificates generated via ACME  |
+| WEB_ENABLE_PUBLIC_LOG        | `False` | whether to show a transparency log of all certificates generated via ACME  |
 | WEB_APP_TITLE        | `ACME CA Server` | title shown in web and mails  |
 | WEB_APP_DESCRIPTION        | `Self hosted ACME CA Server` | description shown in web and mails  |
 
@@ -98,7 +98,7 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 
 ### Mail
 
-Templates consist of `subject.txt` and `body.html` (see [here](./tree/main/app/mail/templates)):
+Templates consist of `subject.txt` and `body.html` (see [here](./app/mail/templates)). Overwrite the following files:
 * /app/mail/templates/**cert-expired-info**/{subject.txt,body.html}
 * /app/mail/templates/**cert-expires-warning**/{subject.txt,body.html}
 * /app/mail/templates/**new-account-info**/{subject.txt,body.html}
@@ -114,13 +114,13 @@ Parameters:
 
 Custom files to be served by the http server can be placed in `/app/web/www`.
 
-Overwrite templates (see [here](./tree/main/app/web/templates)):
+Overwrite templates (see [here](./app/web/templates)):
 * /app/web/templates/cert-log.html (Certificate Listing)
 * /app/web/templates/index.html (Startpage)
 
 ## Provide a custom CA implementation
 
-First set env var `CA_ENABLED=False`. Then overwrite the file `/app/ca/service.py` (see [here](./blob/main/app/ca/service.py)) in the docker image. It must provide two functions:
+First set env var `CA_ENABLED=False`. Then overwrite the file `/app/ca/service.py` (see [here](./app/ca/service.py)) in the docker image. It must provide two functions:
 
 ### 1. `sign_csr()`
 
@@ -167,3 +167,7 @@ flowchart TD
     authorizations -->|1:1| challenges
     orders -->|1:0..1| certificates
 ```
+
+## Workflow
+
+TODO

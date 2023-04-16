@@ -5,7 +5,7 @@ from logger import logger
 
 class WebSettings(BaseSettings):
     enabled: bool = True
-    enable_public_cert_log: bool = False
+    enable_public_log: bool = False
     app_title: str = 'ACME CA Server'
     app_description: str = 'Self hosted ACME CA Server'
 

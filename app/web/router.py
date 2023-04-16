@@ -19,7 +19,7 @@ api = APIRouter(tags=['web'])
 async def index():
     return await template_engine.get_template('index.html').render_async(**default_params)
 
-if settings.web.enable_public_cert_log:
+if settings.web.enable_public_log:
     @api.get('/certificates', response_class=HTMLResponse)
     async def certificate_log():
         async with db.transaction(readonly=True) as sql:
@@ -45,7 +45,28 @@ if settings.web.enable_public_cert_log:
         if not pem_chain:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='unknown certificate')
         return Response(content=pem_chain, media_type = "application/pem-certificate-chain")
+        
+    @api.get('/domains', response_class=HTMLResponse)
+    async def domain_log():
+        async with db.transaction(readonly=True) as sql:
+            domains = [record async for record in sql("""
+                select 
+                    authz.domain as domain_name, 
+                    min(cert.not_valid_before) as first_requested_at, 
+                    max(cert.not_valid_after) as expires_at, 
+                    max(cert.not_valid_after) FILTER (WHERE revoked_at is null) > now() AS is_valid
+                from orders ord
+                join authorizations authz on authz.order_id = ord.id
+                join certificates cert on cert.order_id = ord.id
+                group by authz.domain
+                order by authz.domain
+            """)]
+        return await template_engine.get_template('domain-log.html').render_async(**default_params, domains=domains)
 else:
     @api.get('/certificates')
     async def certificate_log():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This page is disabled')
+
+    @api.get('/domains')
+    async def domain_log():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This page is disabled')
