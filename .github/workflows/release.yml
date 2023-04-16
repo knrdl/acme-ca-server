@@ -13,6 +13,8 @@ jobs:
       - id: imagetag
         run: |
           tag=$(echo "${{github.ref_name}}" | cut -dv -f2)
+          echo "Docker Image Tag: $tag"
+          echo "::set-env name=tag::$tag"
       - name: Create Release
         id: create_release
         if: github.event_name != 'pull_request'
