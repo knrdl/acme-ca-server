@@ -56,7 +56,8 @@ async def acme_validation_exception_handler(request: Request, exc: RequestValida
 @app.exception_handler(HTTPException)
 async def acme_http_exception_handler(request: Request, exc: HTTPException):
     if request.url.path.startswith('/acme/'):
-        exc = ACMEException(status_code=exc.status_code, type='serverInternal', detail=exc.detail)
+        if not isinstance(exc, ACMEException):
+            exc = ACMEException(status_code=exc.status_code, type='serverInternal', detail=str(exc.detail))
     return await http_exception_handler(request, exc)
 
 

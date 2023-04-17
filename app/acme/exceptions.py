@@ -1,5 +1,5 @@
 from typing import Literal
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 AcmeExceptionTypes = Literal[
     'accountDoesNotExist',
@@ -33,7 +33,7 @@ class ACMEException(HTTPException):
     detail_text: str
     value: dict[str, str]
 
-    def __init__(self, status_code: int, type: AcmeExceptionTypes, detail: str = '', new_nonce: str = None) -> None:
+    def __init__(self, *, type: AcmeExceptionTypes, detail: str = '', status_code: int = status.HTTP_400_BAD_REQUEST, new_nonce: str = None) -> None:
         headers={'Content-Type': 'application/problem+json'}
         if new_nonce:
             headers['Replay-Nonce'] = new_nonce
