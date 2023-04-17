@@ -49,11 +49,19 @@ class SignedRequest:
         self.allow_blocked_account = allow_blocked_account
         self.payload_model = payload_model
 
+    @staticmethod
+    def _schemeless_url(url: str):
+        if url.startswith('https://'):
+            return url.removeprefix('https://')
+        if url.startswith('http://'):
+            return url.removeprefix('http://')
+        return url
+
     async def __call__(self, request: Request, response: Response, content_type: str = Header(..., regex=r'^application/jose\+json$', description='Content Type must be "application/jose+json"'), protected: constr(min_length=1) = Body(...), signature: constr(min_length=1) = Body(...), payload: constr(min_length=0) = Body(...)):
         protected_data = Protected(**json.loads(base64url_decode(protected)))
 
-        if protected_data.url != request.url:
-            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type="unauthorized", detail='Requested URL does not match with acutally called URL')
+        if self._schemeless_url(protected_data.url) != self._schemeless_url(str(request.url)):  # Scheme might be different because of reverse proxy forwarding
+            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type="unauthorized", detail='Requested URL does not match with actually called URL')
 
         if protected_data.kid:  # account exists
             base_url = f'{settings.external_url}/acme/accounts/'
