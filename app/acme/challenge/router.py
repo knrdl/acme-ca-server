@@ -44,7 +44,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
     else:
         acme_error = None
 
-    response.headers.append("Link", f'<{settings.external_uri}/authorization/{authz_id}>;rel=up')  # use append because there can be multiple Link-Headers with different rel targets
+    response.headers.append("Link", f'<{settings.external_url}/authorization/{authz_id}>;rel=up')  # use append because there can be multiple Link-Headers with different rel targets
 
     if must_solve_challenge:
         try:
@@ -81,7 +81,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
     
     return {
          "type": "http-01",
-         "url": f'{settings.external_uri}/acme/challenges/{chal_id}',
+         "url": f'{settings.external_url}/acme/challenges/{chal_id}',
          "status": chal_status,
          "validated": chal_validated_at,
          "token": token,

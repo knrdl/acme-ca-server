@@ -65,7 +65,7 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
     ) \
     .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True) \
     .add_extension(x509.CRLDistributionPoints(distribution_points=[x509.DistributionPoint(full_name=[
-            x509.UniformResourceIdentifier(settings.external_uri.removesuffix('/') + f'/ca/{ca_id}/crl')
+            x509.UniformResourceIdentifier(settings.external_url.removesuffix('/') + f'/ca/{ca_id}/crl')
         ], relative_name=None, reasons=None, crl_issuer=None)]), critical=True) \
     .add_extension(x509.SubjectAlternativeName(general_names=[x509.DNSName(domain) for domain in san_domains]), critical=False)
     cert = cert_builder.sign(private_key=ca_key, algorithm=hashes.SHA512(),)

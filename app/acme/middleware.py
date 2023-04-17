@@ -56,7 +56,7 @@ class SignedRequest:
             raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type="unauthorized", detail='Requested URL does not match with acutally called URL')
 
         if protected_data.kid:  # account exists
-            base_url = f'{settings.external_uri}/acme/accounts/'
+            base_url = f'{settings.external_url}/acme/accounts/'
             if not protected_data.kid.startswith(base_url):
                 raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type="malformed", detail=f'JWS invalid: kid must start with: "{base_url}"')
             
@@ -96,7 +96,7 @@ class SignedRequest:
         new_nonce = await nonce_service.refresh(protected_data.nonce)
 
         response.headers["Replay-Nonce"] = new_nonce
-        response.headers.append('Link', f'<{settings.external_uri}/acme/directory>;rel="index"')  # use append because there can be multiple Link-Headers with different rel targets
+        response.headers.append('Link', f'<{settings.external_url}/acme/directory>;rel="index"')  # use append because there can be multiple Link-Headers with different rel targets
         
         return RequestData[self.payload_model](payload=payload_data, key=key, account_id=account_id)
     

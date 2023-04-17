@@ -74,7 +74,7 @@ class AcmeSettings(BaseSettings):
         env_prefix = 'acme_'
 
 class Settings(BaseSettings):
-    external_uri: AnyHttpUrl
+    external_url: AnyHttpUrl
     db_dsn: PostgresDsn
     acme: AcmeSettings = AcmeSettings()
     ca: CaSettings = CaSettings()
@@ -87,8 +87,8 @@ settings = Settings()
 
 logger.info(f'Settings: {settings.dict()}')
 
-if settings.external_uri.scheme != 'https':
-    logger.warn('Env Var "external_uri" is not HTTPS. This is insecure!')
+if settings.external_url.scheme != 'https':
+    logger.warn('Env Var "external_url" is not HTTPS. This is insecure!')
 
 if settings.mail.warn_before_cert_expires and settings.ca.enabled and settings.mail.enabled:
     if settings.mail.warn_before_cert_expires >= settings.ca.cert_lifetime:

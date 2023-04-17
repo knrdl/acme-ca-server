@@ -34,7 +34,7 @@ async def view_or_update_authorization(response: Response, authz_id: str, data: 
                     authz_status = await sql.value("update authorizations set status = 'deactivated' where id = $1 returning status", authz_id)
         chal = {
             "type": "http-01",
-            "url": f'{settings.external_uri}/acme/challenges/{chal_id}',
+            "url": f'{settings.external_url}/acme/challenges/{chal_id}',
             "token": chal_token,
             "status": chal_status,
             "validated": chal_validated_at
