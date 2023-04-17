@@ -26,7 +26,7 @@ services:
     image: knrdl/acme-ca-server
     restart: always
     environment:
-      EXTERNAL_URI: http://localhost:8080
+      EXTERNAL_URL: http://localhost:8080
       DB_DSN: postgresql://postgres:secret@db/postgres
     # ports:
     #   - "8080:8080"
@@ -70,7 +70,7 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 
 | Env Var | Default | Description |
 |---------|---------|-------------|
-| EXTERNAL_URI        |         | The HTTPS address the server will be reachable from, e.g. https://acme.mydomain.org             |
+| EXTERNAL_URL        |         | The HTTPS address the server will be reachable from, e.g. https://acme.mydomain.org             |
 | DB_DSN        |         | Postgres connection string, e.g. postgresql://username:password@host/dbname (database will be initialized on startup)            |
 | ACME_TERMS_OF_SERVICE_URL        | `None`        | Optional URL which the ACME client can show when the user has to accept the terms of service, e.g. https://acme.mydomain.org/terms             |
 | ACME_MAIL_TARGET_REGEX        | any mail address       | restrict the email address which must be provided to the ACME client by the user. E.g. `[^@]+@mydomain\.org` only allows mail addresses from mydomain.org             |
@@ -106,6 +106,8 @@ Templates consist of `subject.txt` and `body.html` (see [here](./app/mail/templa
 Parameters:
 * `app_title`: `str`  application title from `WEB_APP_TITLE`
 * `app_desc`: `str`  application description from `WEB_APP_DESCRIPTION`
+* `web_url`: `str`  web index url from `EXTERNAL_URL`
+* `acme_url`: `str`  acme directory url
 * `domains`: `list[str]` list of expiring domains
 * `expires_at`: `datetime` domain expiration date
 * `serial_number`: `str` expiring certs serial number (hex)
@@ -116,7 +118,16 @@ Custom files to be served by the http server can be placed in `/app/web/www`.
 
 Overwrite templates (see [here](./app/web/templates)):
 * /app/web/templates/cert-log.html (Certificate Listing)
+* /app/web/templates/domain-log.html (Domain Listing)
 * /app/web/templates/index.html (Startpage)
+
+Parameters:
+* `app_title`: `str`  application title from `WEB_APP_TITLE`
+* `app_desc`: `str`  application description from `WEB_APP_DESCRIPTION`
+* `web_url`: `str`  web index url from `EXTERNAL_URL`
+* `acme_url`: `str`  acme directory url
+* `certs`: `list` list of certs for `cert-log.html`
+* `domains`: `list` list of domains for `domain-log.html`
 
 ## Provide a custom CA implementation
 
