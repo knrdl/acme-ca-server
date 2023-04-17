@@ -172,7 +172,7 @@ A custom CA backend must also handle the CRL (certificate revocation list) distr
 ## Entities
 
 ```mermaid
-flowchart TD
+flowchart LR
     accounts -->|1:0..n| orders
     orders -->|1:1..n| authorizations
     authorizations -->|1:1| challenges
