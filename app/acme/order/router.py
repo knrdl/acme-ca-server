@@ -85,7 +85,7 @@ async def view_order(response: Response, order_id: str, data: Annotated[RequestD
     if cert_record:
         cert_sn, not_valid_before, not_valid_after = cert_record
     if err:
-        acme_error = ACMEException(type=err.type, detail=err.detail)
+        acme_error = ACMEException(type=err.get('type'), detail=err.get('detail'))
     else:
         acme_error = None
     return order_response(
