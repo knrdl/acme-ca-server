@@ -9,7 +9,12 @@ from config import settings
 
 template_engine = Environment(loader=FileSystemLoader('web/templates'), enable_async=True)
 
-default_params = dict(app_title=settings.web.app_title, app_desc=settings.web.app_description)
+default_params = dict(
+    app_title=settings.web.app_title, 
+    app_desc=settings.web.app_description,
+    web_url=settings.external_url,
+    acme_url=settings.external_url + '/acme/directory',
+)
 
 
 
@@ -32,7 +37,7 @@ if settings.web.enable_public_log:
                     array((select domain from authorizations authz where authz.order_id = cert.order_id order by domain)) as domains
                 from certificates cert
                 group by serial_number
-                order by not_valid_after
+                order by not_valid_after desc
             """)]
         return await template_engine.get_template('cert-log.html').render_async(**default_params, certs=certs)
 
