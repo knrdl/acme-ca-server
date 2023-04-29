@@ -1,0 +1,27 @@
+name: Code Format
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pycodestyle
+
+      - name: Check linting
+        run: |
+          # ignore E501 = line too long
+          python -m pycodestyle --ignore=E501 .
+
