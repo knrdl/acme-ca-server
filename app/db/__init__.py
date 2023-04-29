@@ -20,6 +20,7 @@ async def disconnect():
     global _pool
     await _pool.close()
 
+
 async def init_connection(conn: asyncpg.Connection):
     await conn.set_type_codec('jsonb', encoder=_encode_json, decoder=json.loads, schema='pg_catalog')
 
@@ -39,7 +40,8 @@ class transaction:
 
     async def __aenter__(self, *args, **kwargs):
         self.conn: asyncpg.Connection = await _pool.acquire()
-        self.trans: asyncpg.connection.transaction = self.conn.transaction(readonly=self.readonly)
+        self.trans: asyncpg.connection.transaction = self.conn.transaction(
+            readonly=self.readonly)
         await self.trans.start()
         return self
 
@@ -66,7 +68,8 @@ class transaction:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            logger.debug('Transaction rollback. Reason: %s %s', exc_type, exc_val, exc_tb)
+            logger.debug('Transaction rollback. Reason: %s %s',
+                         exc_type, exc_val, exc_tb)
             await self.trans.rollback()
         else:
             await self.trans.commit()

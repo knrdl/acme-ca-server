@@ -4,9 +4,10 @@ from config import settings
 
 api = APIRouter(tags=['acme:directory'])
 
+
 @api.get('/directory')
 async def get_directory():
-    meta = {"website": settings.external_url,}
+    meta = {"website": settings.external_url}
     if settings.acme.terms_of_service_url:
         meta["termsOfService"] = settings.acme.terms_of_service_url
     return {

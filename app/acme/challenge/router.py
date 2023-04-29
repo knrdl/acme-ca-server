@@ -11,6 +11,7 @@ from logger import logger
 
 api = APIRouter(tags=['acme:challenge'])
 
+
 @api.post('/challenges/{chal_id}')
 async def verify_challenge(response: Response, chal_id: str, data: Annotated[RequestData, Depends(SignedRequest())]):
     must_solve_challenge = False
@@ -22,7 +23,8 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
             where chal.id = $1 and ord.account_id = $2 and ord.expires_at > now()
         ''', chal_id, data.account_id)
         if not record:
-            raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type="malformed", detail='specified challenge not available for current account')
+            raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type="malformed",
+                                detail='specified challenge not available for current account')
         authz_id, chal_err, chal_status, authz_status, domain, chal_validated_at, token, order_id, order_status = record
         if order_status == 'invalid':
             await sql.exec('''update authorizations set status = 'invalid' where id = $1''', authz_id)
@@ -44,7 +46,9 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
     else:
         acme_error = None
 
-    response.headers.append("Link", f'<{settings.external_url}/authorization/{authz_id}>;rel=up')  # use append because there can be multiple Link-Headers with different rel targets
+    # use append because there can be multiple Link-Headers with different rel targets
+    response.headers.append(
+        "Link", f'<{settings.external_url}/authorization/{authz_id}>;rel=up')
 
     if must_solve_challenge:
         try:
@@ -53,19 +57,21 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
         except ACMEException as e:
             err = e
         except Exception as e:
-            err = ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(e))
-            logger.warn('challenge failed for %s (account: %s)', domain, data.account_id, exc_info=True)
+            err = ACMEException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(e))
+            logger.warn('challenge failed for %s (account: %s)',
+                        domain, data.account_id, exc_info=True)
         if err is False:
             async with db.transaction() as sql:
                 chal_status, chal_validated_at = await sql.record("""
-                    update challenges set validated_at=now(), status = 'valid' 
+                    update challenges set validated_at=now(), status = 'valid'
                     where id = $1 and status='processing' returning status, validated_at
                 """, chal_id)
                 await sql.exec("""
                     update authorizations set status = 'valid' where id = $1 and status = 'pending'
                 """, authz_id)
                 await sql.exec("""
-                    update orders set status='ready' where id = $1 and status='pending' and 
+                    update orders set status='ready' where id = $1 and status='pending' and
                     (select count(id) from authorizations where order_id = $1 and status <> 'valid') = 0
                 """, order_id)  # set order to ready if all authzs are valid
         else:
@@ -78,13 +84,12 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
                 await sql.exec("""
                     update orders set status = 'invalid', error=row('unauthorized', 'challenge failed') where id = $1
                 """, order_id)
-    
-    return {
-         "type": "http-01",
-         "url": f'{settings.external_url}/acme/challenges/{chal_id}',
-         "status": chal_status,
-         "validated": chal_validated_at,
-         "token": token,
-         "error": acme_error.value if acme_error else None
-        }
 
+    return {
+        "type": "http-01",
+        "url": f'{settings.external_url}/acme/challenges/{chal_id}',
+        "status": chal_status,
+        "validated": chal_validated_at,
+        "token": token,
+        "error": acme_error.value if acme_error else None
+    }

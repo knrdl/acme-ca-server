@@ -4,13 +4,14 @@ import db
 from config import settings
 from logger import logger
 
+
 async def start():
     async def run():
         while True:
             try:
                 async with db.transaction(readonly=True) as sql:
                     results = [record async for record in sql("""
-                        with 
+                        with
                             expiring_domains as (
                                 select authz.domain, acc.mail, cert.serial_number, cert.not_valid_after from certificates cert
                                     join orders ord on cert.order_id = ord.id
@@ -40,8 +41,9 @@ async def start():
                         try:
                             await mail.send_certs_will_expire_warn_mail(receiver=mail_addr, domains=domains, expires_at=expires_at, serial_number=serial_number)
                             ok = True
-                        except:
-                            logger.error('could not send_certs_will_expire_warn_mail for "%s"', mail_addr, exc_info=True)
+                        except BaseException:
+                            logger.error(
+                                'could not send_certs_will_expire_warn_mail for "%s"', mail_addr, exc_info=True)
                             ok = False
                         if ok:
                             async with db.transaction() as sql:
@@ -50,15 +52,17 @@ async def start():
                         try:
                             await mail.send_certs_expired_info_mail(receiver=mail_addr, domains=domains, expires_at=expires_at, serial_number=serial_number)
                             ok = True
-                        except:
-                            logger.error('could not send_certs_expired_info_mail for "%s"', mail_addr, exc_info=True)
+                        except BaseException:
+                            logger.error(
+                                'could not send_certs_expired_info_mail for "%s"', mail_addr, exc_info=True)
                             ok = False
                         if ok:
                             async with db.transaction() as sql:
                                 await sql.exec("update certificates set user_informed_cert_has_expired=true where serial_number=$1", serial_number)
-            except:
-                logger.error('could not inform about expiring certificates', exc_info=True)
+            except BaseException:
+                logger.error(
+                    'could not inform about expiring certificates', exc_info=True)
             finally:
-                await asyncio.sleep(1*60*60)                
+                await asyncio.sleep(1 * 60 * 60)
     if settings.mail.notify_when_cert_expired or settings.mail.warn_before_cert_expires:
         asyncio.create_task(run())

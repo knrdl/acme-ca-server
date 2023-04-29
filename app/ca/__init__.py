@@ -17,8 +17,8 @@ if settings.ca.enabled:
     from .service import build_crl_sync
     from cryptography.fernet import Fernet
 
-    @router.get('/{serial_number}/crl', response_class=Response, responses = {
-        200: {  "content": {"application/pkix-crl": {}} }
+    @router.get('/{serial_number}/crl', response_class=Response, responses={
+        200: {"content": {"application/pkix-crl": {}}}
     })
     async def download_crl(serial_number: constr(regex="^[0-9A-F]+$")):
         async with db.transaction(readonly=True) as sql:
@@ -36,16 +36,17 @@ if settings.ca.enabled:
             with open('/import/ca.pem', 'rb') as f:
                 ca_cert_bytes = f.read()
             ca_cert = x509.load_pem_x509_certificate(ca_cert_bytes, None)
-            serial_number = SerialNumberConverter.int2hex(ca_cert.serial_number)
+            serial_number = SerialNumberConverter.int2hex(
+                ca_cert.serial_number)
 
             async with db.transaction(readonly=True) as sql:
-                revocations = [record async for record in sql("select serial_number, revoked_at from certificates where revoked_at is not null") ]
+                revocations = [record async for record in sql("select serial_number, revoked_at from certificates where revoked_at is not null")]
             crl, crl_pem = await asyncio.to_thread(build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations)
 
             async with db.transaction() as sql:
                 await sql.exec('update cas set active = false')
                 await sql.exec("""
-                    insert into cas (serial_number, cert_pem, key_pem_enc, active, crl_pem) 
+                    insert into cas (serial_number, cert_pem, key_pem_enc, active, crl_pem)
                         values ($1, $2, $3, true, $4)
                     on conflict (serial_number) do update set active = true, crl_pem = $4
                 """, serial_number, ca_cert_bytes.decode(), ca_key_enc, crl_pem)
@@ -54,9 +55,11 @@ if settings.ca.enabled:
             async with db.transaction() as sql:
                 ok = await sql.value('select count(serial_number)=1 from cas where active=true')
             if not ok:
-                raise Exception('internal ca is enabled but no CA certificate is registered and active. Please import one first.')
+                raise Exception(
+                    'internal ca is enabled but no CA certificate is registered and active. Please import one first.')
 
         await cronjob.start()
 else:
     async def init():
-        logger.info('Builtin CA is disabled, relying on custom CA implementation')
+        logger.info(
+            'Builtin CA is disabled, relying on custom CA implementation')

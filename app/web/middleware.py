@@ -5,7 +5,10 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses."""
 
-    def __init__(self, app: FastAPI, *, content_security_policy: dict[str,str] = None, permissions_policy: dict[str,str] = None) -> None:
+    def __init__(self, app: FastAPI, *,
+                 content_security_policy: dict[str, str] = None,
+                 permissions_policy: dict[str, str] = None
+                 ) -> None:
         super().__init__(app)
         self.csp = content_security_policy
         self.pp = permissions_policy
@@ -25,12 +28,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "X-XSS-Protection": "1; mode=block",
         }
         if self.csp:
-            matches = [path for path in self.csp.keys() if request.url.path.startswith(path)]
+            matches = [
+                path for path in self.csp.keys() if request.url.path.startswith(path)]
             if matches:
                 best_match = sorted(matches, key=len, reverse=True)[0]
                 headers['Content-Security-Policy'] = self.csp[best_match]
         if self.pp:
-            matches = [path for path in self.pp.keys() if request.url.path.startswith(path)]
+            matches = [
+                path for path in self.pp.keys() if request.url.path.startswith(path)]
             if matches:
                 best_match = sorted(matches, key=len, reverse=True)[0]
                 headers['Permissions-Policy'] = self.pp[best_match]

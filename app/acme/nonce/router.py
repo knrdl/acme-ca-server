@@ -5,6 +5,7 @@ from config import settings
 
 api = APIRouter(tags=['acme:nonce'])
 
+
 @api.head('/new-nonce', status_code=204)
 @api.get('/new-nonce', status_code=204)
 async def get_nonce(response: Response):

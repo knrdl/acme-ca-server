@@ -2,14 +2,15 @@ import asyncio
 import db
 from logger import logger
 
+
 async def start():
     async def run():
         while True:
             try:
                 async with db.transaction() as sql:
                     await sql.exec('delete from nonces where expires_at < now()')
-            except:
+            except BaseException:
                 logger.error('could not purge old nonces', exc_info=True)
             finally:
-                await asyncio.sleep(1*60*60)
+                await asyncio.sleep(1 * 60 * 60)
     asyncio.create_task(run())

@@ -17,6 +17,7 @@ import ca
 import web
 from config import settings
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.connect()
@@ -27,13 +28,15 @@ async def lifespan(app: FastAPI):
     await db.disconnect()
 
 
-app = FastAPI(lifespan=lifespan, version=__version__, redoc_url=None, docs_url=None,
+app = FastAPI(
+    lifespan=lifespan, version=__version__, redoc_url=None, docs_url=None,
     title=settings.web.app_title, description=settings.web.app_description)
-app.add_middleware(web.middleware.SecurityHeadersMiddleware, content_security_policy={
-    '/acme/': "base-uri 'self'; default-src 'none';",
-    '/endpoints': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-src 'none'; img-src 'self' data:;",
-    '/': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'none'; img-src 'self' data:;"
-})
+app.add_middleware(web.middleware.SecurityHeadersMiddleware,
+                   content_security_policy={
+                       '/acme/': "base-uri 'self'; default-src 'none';",
+                       '/endpoints': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-src 'none'; img-src 'self' data:;",
+                       '/': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'none'; img-src 'self' data:;"
+                   })
 
 if settings.web.enabled:
     @app.get("/endpoints", tags=['web'])
@@ -47,17 +50,22 @@ if settings.web.enabled:
         )
 
 # custom exception handler for acme specific response format
+
+
 @app.exception_handler(RequestValidationError)
 async def acme_validation_exception_handler(request: Request, exc: RequestValidationError):
     if request.url.path.startswith('/acme/'):
-        exc = ACMEException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, type='malformed', detail=exc.json())
+        exc = ACMEException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, type='malformed', detail=exc.json())
     return await http_exception_handler(request, exc)
+
 
 @app.exception_handler(HTTPException)
 async def acme_http_exception_handler(request: Request, exc: HTTPException):
     if request.url.path.startswith('/acme/'):
         if not isinstance(exc, ACMEException):
-            exc = ACMEException(status_code=exc.status_code, type='serverInternal', detail=str(exc.detail))
+            exc = ACMEException(
+                status_code=exc.status_code, type='serverInternal', detail=str(exc.detail))
     return await http_exception_handler(request, exc)
 
 

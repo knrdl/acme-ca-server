@@ -17,7 +17,7 @@ async def run():
         dirty = False
         while True:
             cur_level = await sql.value('select migration from migrations')
-            next_level = cur_level+1
+            next_level = cur_level + 1
             cur_file = Path('db/migrations') / f"{cur_level:0>3}.sql"
             next_file = Path('db/migrations') / f"{next_level:0>3}.sql"
             if not next_file.is_file():
@@ -28,8 +28,8 @@ async def run():
             await sql.exec('update migrations set migration=$1', next_level)
             dirty = True
         if dirty:
-            logger.info(f'Finished database migrations (current level: {cur_file.name})')
+            logger.info(
+                f'Finished database migrations (current level: {cur_file.name})')
         else:
-            logger.info(f'Database migrations are up to date (current level: {cur_file.name})')
-
-
+            logger.info(
+                f'Database migrations are up to date (current level: {cur_file.name})')

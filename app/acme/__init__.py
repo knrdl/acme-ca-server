@@ -15,11 +15,14 @@ from .order import router as order_router
 from .certificate import cronjob as certificate_cronjob
 from .nonce import cronjob as nonce_cronjob
 
+
 class ACMEResponse(JSONResponse):
     def render(self, content: dict[str, Any] | None) -> bytes:
         return super().render(  # remove null fields from responses
-            {k:v for k,v in content.items() if v is not None} if content is not None else None
+            {k: v for k, v in content.items() if v is not None}
+            if content is not None else None
         )
+
 
 router = APIRouter(prefix='/acme', default_response_class=ACMEResponse)
 router.include_router(account_router.api)
@@ -29,6 +32,7 @@ router.include_router(challenge_router.api)
 router.include_router(directory_router.api)
 router.include_router(nonce_router.api)
 router.include_router(order_router.api)
+
 
 async def start_cronjobs():
     await asyncio.gather(

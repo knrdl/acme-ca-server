@@ -9,26 +9,31 @@ from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest
 from ca import service as ca_service
 
+
 class RevokeCertPayload(BaseModel):
-    certificate: constr(min_length=1, max_length=1*1024**2)
+    certificate: constr(min_length=1, max_length=1 * 1024**2)
     reason: Optional[int]  # not evaluated
 
 
 api = APIRouter(tags=['acme:certificate'])
 
-@api.post('/certificates/{serial_number}', response_class=Response, responses = {
-    200: {  "content": {"application/pem-certificate-chain": {}} }
+
+@api.post('/certificates/{serial_number}', response_class=Response, responses={
+    200: {"content": {"application/pem-certificate-chain": {}}}
 })
 async def download_cert(response: Response, serial_number: constr(regex="^[0-9A-F]+$"), data: Annotated[RequestData, Depends(SignedRequest())], accept: str = Header(default="*/*", regex=r'(application/pem\-certificate\-chain|\*/\*)', description='Certificates are only supported as "application/pem-certificate-chain"')):
     async with db.transaction(readonly=True) as sql:
         pem_chain = await sql.value('''
-            select cert.chain_pem from certificates cert 
+            select cert.chain_pem from certificates cert
             join orders ord on cert.order_id = ord.id
             where cert.serial_number = $1 and ord.account_id = $2
         ''', serial_number, data.account_id)
     if not pem_chain:
-        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type="malformed", detail='specified certificate not found for current account')
-    return Response(content=pem_chain, media_type = "application/pem-certificate-chain", headers=response.headers)
+        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type="malformed",
+                            detail='specified certificate not found for current account')
+    return Response(content=pem_chain, headers=response.headers,
+                    media_type="application/pem-certificate-chain")
+
 
 @api.post('/revoke-cert')
 async def revoke_cert(response: Response, data: Annotated[RequestData[RevokeCertPayload], Depends(SignedRequest(RevokeCertPayload, allow_new_account=True))]):
@@ -45,12 +50,13 @@ async def revoke_cert(response: Response, data: Annotated[RequestData[RevokeCert
             select true from certificates c
                 join orders o on o.id = c.order_id
                 join accounts a on a.id = o.account_id
-            where 
+            where
                 c.serial_number = $1 and c.revoked_at is null and
                 ($2::text is null or (a.id = $2::text and a.status='valid')) and a.jwk=$3
         """, serial_number, data.account_id, jwk_json)
     if not ok:
-        raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='alreadyRevoked', detail='cert already revoked or not accessible')
+        raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST,
+                            type='alreadyRevoked', detail='cert already revoked or not accessible')
     async with db.transaction(readonly=True) as sql:
         revocations = [(sn, rev_at) async for sn, rev_at in sql("select serial_number, revoked_at from certificates where revoked_at is not null")]
         revoked_at = await sql.value('select now()')
