@@ -24,7 +24,8 @@ openssl genrsa -out ca.key 4096
 openssl req -new -x509 -nodes -days 3650 -subj "/C=XX/O=Test" -key ca.key -out ca.pem -set_serial "0xDEADBEAF"
 chmod a+r {ca.key,ca.pem}
 
-docker run -dit --name test_server --net test_net -p8080:8080 --network-alias acme.example.org \
+function run_server() {
+     docker run -dit --name test_server --net test_net -p8080:8080 --network-alias acme.example.org \
         -v "$PWD/ca.key:/import/ca.key:ro" -v "$PWD/ca.pem:/import/ca.pem:ro" \
         -e DB_DSN="postgresql://postgres:secret@test_db/postgres" \
         -e MAIL_ENABLED=true -e MAIL_HOST=test_mail -e MAIL_ENCRYPTION=plain -e MAIL_SENDER=acme@example.org \
@@ -32,6 +33,8 @@ docker run -dit --name test_server --net test_net -p8080:8080 --network-alias ac
         -e EXTERNAL_URL="http://acme.example.org:8080" \
         -e CA_ENCRYPTION_KEY="DaxNj1bTiCsk6aQiY43hz2jDqBZAU5kta1uNBzp_yqo=" \
         acmeserver
+}
+run_server
 
 sleep 5
 curl --fail --silent localhost:8080 > /dev/null
@@ -132,5 +135,18 @@ while [ ! -f ./caddydata/caddy/certificates/localhost-8080-acme-directory/host10
 done
 
 docker kill test_caddy
+
+docker kill test_server
+docker logs test_server
+docker rm test_server
+
+docker exec -it test_db psql -U postgres -c "update certificates set not_valid_before=now() - interval '50 day', not_valid_after=now() - interval '10 days' where order_id = (select id from orders order by id asc limit 1);"
+docker exec -it test_db psql -U postgres -c "update certificates set not_valid_before=now() - interval '50 day', not_valid_after=now() + interval '10 days' where order_id = (select id from orders order by id desc limit 1);"
+
+run_server
+
+sleep 5
+
+docker kill test_server
 
 docker logs test_server
