@@ -58,10 +58,9 @@ class MailSettings(BaseSettings):
 
     @root_validator(pre=True)
     def sanitize_values(cls, values):
-        warn_before_cert_expires = values.get(
-            'warn_before_cert_expires', '').lower().strip()
-        if warn_before_cert_expires in ('', 'false', '0', '-1'):
-            values['warn_before_cert_expires'] = False
+        if 'warn_before_cert_expires' in values:  # not in values if default value
+            if (values.get('warn_before_cert_expires') or '').lower().strip() in ('', 'false', '0', '-1'):
+                values['warn_before_cert_expires'] = False
         return values
 
     @root_validator(pre=False)
