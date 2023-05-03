@@ -14,4 +14,4 @@ ADD --chmod=0644 https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui-bundl
 ADD --chmod=0644 https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui.css /app/web/www/libs/
 
 USER appuser
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--no-server-header"]
