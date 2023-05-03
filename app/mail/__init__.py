@@ -1,12 +1,11 @@
 from datetime import datetime
-from typing import Literal
-from jinja2 import Environment, FileSystemLoader
-from aiosmtplib import SMTP
-from email.message import EmailMessage
 from email.mime.text import MIMEText
-from logger import logger
+from typing import Literal
 
+from aiosmtplib import SMTP
 from config import settings
+from jinja2 import Environment, FileSystemLoader
+from logger import logger
 
 template_engine = Environment(
     loader=FileSystemLoader('mail/templates'), enable_async=True)
@@ -30,10 +29,10 @@ async def send_mail(receiver: str, template: Templates, subject_vars: dict = Non
         .render_async(subject_vars)
     body_job = template_engine.get_template(template + '/body.html')\
         .render_async(body_vars)
-    message = MIMEText(await body_job, "html", "utf-8")
-    message["From"] = settings.mail.sender
-    message["To"] = receiver
-    message["Subject"] = await subject_job
+    message = MIMEText(await body_job, 'html', 'utf-8')
+    message['From'] = settings.mail.sender
+    message['To'] = receiver
+    message['Subject'] = await subject_job
     if settings.mail.enabled:
         auth = dict()
         if settings.mail.username and settings.mail.password:

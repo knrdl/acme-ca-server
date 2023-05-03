@@ -1,29 +1,30 @@
 import asyncio
 from pathlib import Path
-from fastapi import APIRouter, Response
-from pydantic import constr
-from acme.certificate.service import SerialNumberConverter
-import db
-from config import settings
-from logger import logger
 
+import db
+from acme.certificate.service import SerialNumberConverter
+from config import settings
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
+from fastapi import APIRouter, Response
+from logger import logger
+from pydantic import constr
 
 router = APIRouter(prefix='/ca', tags=['ca'])
 
 if settings.ca.enabled:
-    from . import cronjob
-    from .service import build_crl_sync
     from cryptography.fernet import Fernet
 
+    from . import cronjob
+    from .service import build_crl_sync
+
     @router.get('/{serial_number}/crl', response_class=Response, responses={
-        200: {"content": {"application/pkix-crl": {}}}
+        200: {'content': {'application/pkix-crl': {}}}
     })
-    async def download_crl(serial_number: constr(regex="^[0-9A-F]+$")):
+    async def download_crl(serial_number: constr(regex='^[0-9A-F]+$')):
         async with db.transaction(readonly=True) as sql:
-            crl_pem = await sql.value("select crl_pem from cas where serial_number = $1", serial_number)
-        return Response(content=crl_pem, media_type="application/pkix-crl")
+            crl_pem = await sql.value('select crl_pem from cas where serial_number = $1', serial_number)
+        return Response(content=crl_pem, media_type='application/pkix-crl')
 
     async def init():
         if Path('/import/ca.pem').is_file() and Path('/import/ca.key').is_file():
@@ -40,7 +41,7 @@ if settings.ca.enabled:
                 ca_cert.serial_number)
 
             async with db.transaction(readonly=True) as sql:
-                revocations = [record async for record in sql("select serial_number, revoked_at from certificates where revoked_at is not null")]
+                revocations = [record async for record in sql('select serial_number, revoked_at from certificates where revoked_at is not null')]
             crl, crl_pem = await asyncio.to_thread(build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations)
 
             async with db.transaction() as sql:

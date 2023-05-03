@@ -1,5 +1,6 @@
 from typing import Literal
-from fastapi import HTTPException, status
+from fastapi import status
+from fastapi.responses import JSONResponse
 
 AcmeExceptionTypes = Literal[
     'accountDoesNotExist',

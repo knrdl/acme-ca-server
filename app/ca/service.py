@@ -3,18 +3,17 @@
 # set env var CA_ENABLED=False when providing a custom ca implementation
 
 import asyncio
-from cryptography import x509
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import hashes
-from cryptography.fernet import Fernet
-
-from acme.certificate.service import SerialNumberConverter
-import db
-from .model import SignedCertInfo
-from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 from datetime import datetime
 
+import db
+from acme.certificate.service import SerialNumberConverter
 from config import settings
+from cryptography import x509
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
+
+from .model import SignedCertInfo
 
 
 async def sign_csr(csr: x509.CertificateSigningRequest, subject_domain: str, san_domains: list[str]) -> SignedCertInfo:
@@ -42,7 +41,7 @@ async def revoke_cert(serial_number: str, revocations: set[tuple[str, datetime]]
     ca_cert, ca_key = await load_active_ca()
     crl, crl_pem = await asyncio.to_thread(build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations)
     async with db.transaction() as sql:
-        await sql.exec("update cas set crl_pem = $1 where active = true", crl_pem)
+        await sql.exec('update cas set crl_pem = $1 where active = true', crl_pem)
 
 
 async def load_active_ca():

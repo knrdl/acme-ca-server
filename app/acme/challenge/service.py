@@ -1,7 +1,8 @@
 import asyncio
-from fastapi import status
+
 import httpx
 import jwcrypto.jwk
+from fastapi import status
 
 from ..exceptions import ACMEException
 
@@ -19,7 +20,7 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
                 trust_env=False  # do not load proxy information from env vars
             ) as client:
                 res = await client.get(f'http://{domain}:80/.well-known/acme-challenge/{token}')
-                if res.status_code == 200 and res.text.rstrip() == f"{token}.{jwk.thumbprint()}":
+                if res.status_code == 200 and res.text.rstrip() == f'{token}.{jwk.thumbprint()}':
                     err = False
                 else:
                     err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST,

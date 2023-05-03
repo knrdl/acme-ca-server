@@ -2,18 +2,17 @@ import json
 from typing import Any
 
 import asyncpg
-from pydantic import BaseModel
-
 from config import settings
 from logger import logger
+from pydantic import BaseModel
 
-_pool: asyncpg.pool.Pool
+_pool: asyncpg.pool.Pool = None
 
 
 async def connect():
     global _pool
     _pool = await asyncpg.create_pool(
-        min_size=0, max_size=20, dsn=settings.db_dsn, init=init_connection, server_settings={"application_name": settings.web.app_title})
+        min_size=0, max_size=20, dsn=settings.db_dsn, init=init_connection, server_settings={'application_name': settings.web.app_title})
 
 
 async def disconnect():
@@ -58,7 +57,7 @@ class transaction:
         """fetch first value from frist response row for query"""
         return await self.conn.fetchval(*args)
 
-    async def exec(self, *args):
+    async def exec(self, *args):  # noqa: A003 (allow shadowing builtin "type")
         """execute command"""
         return await self.conn.execute(*args)
 

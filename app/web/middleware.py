@@ -21,11 +21,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         :return: Return response coming from from processed request
         """
         headers = {
-            "Cross-Origin-Opener-Policy": "same-origin",
-            "Referrer-Policy": "strict-origin-when-cross-origin",
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY",
-            "X-XSS-Protection": "1; mode=block",
+            'Cross-Origin-Opener-Policy': 'same-origin',
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+            'X-XSS-Protection': '1; mode=block',
         }
         if self.csp:
             matches = [

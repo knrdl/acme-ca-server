@@ -1,13 +1,14 @@
 from typing import Annotated, Optional
-from fastapi import APIRouter, Depends, Header, Response, status
-from pydantic import BaseModel, constr
-from jwcrypto.common import base64url_decode
 
-from .service import parse_cert, SerialNumberConverter
 import db
+from ca import service as ca_service
+from fastapi import APIRouter, Depends, Header, Response, status
+from jwcrypto.common import base64url_decode
+from pydantic import BaseModel, constr
+
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest
-from ca import service as ca_service
+from .service import SerialNumberConverter, parse_cert
 
 
 class RevokeCertPayload(BaseModel):
@@ -19,20 +20,25 @@ api = APIRouter(tags=['acme:certificate'])
 
 
 @api.post('/certificates/{serial_number}', response_class=Response, responses={
-    200: {"content": {"application/pem-certificate-chain": {}}}
+    200: {'content': {'application/pem-certificate-chain': {}}}
 })
-async def download_cert(response: Response, serial_number: constr(regex="^[0-9A-F]+$"), data: Annotated[RequestData, Depends(SignedRequest())], accept: str = Header(default="*/*", regex=r'(application/pem\-certificate\-chain|\*/\*)', description='Certificates are only supported as "application/pem-certificate-chain"')):
+async def download_cert(
+    response: Response, serial_number: constr(regex='^[0-9A-F]+$'),
+    data: Annotated[RequestData, Depends(SignedRequest())],
+    accept: str = Header(default='*/*', regex=r'(application/pem\-certificate\-chain|\*/\*)',
+                         description='Certificates are only supported as "application/pem-certificate-chain"')
+):
     async with db.transaction(readonly=True) as sql:
-        pem_chain = await sql.value('''
+        pem_chain = await sql.value("""
             select cert.chain_pem from certificates cert
             join orders ord on cert.order_id = ord.id
             where cert.serial_number = $1 and ord.account_id = $2
-        ''', serial_number, data.account_id)
+        """, serial_number, data.account_id)
     if not pem_chain:
-        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type="malformed",
+        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed',
                             detail='specified certificate not found for current account')
     return Response(content=pem_chain, headers=response.headers,
-                    media_type="application/pem-certificate-chain")
+                    media_type='application/pem-certificate-chain')
 
 
 @api.post('/revoke-cert')
@@ -58,7 +64,7 @@ async def revoke_cert(response: Response, data: Annotated[RequestData[RevokeCert
         raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST,
                             type='alreadyRevoked', detail='cert already revoked or not accessible')
     async with db.transaction(readonly=True) as sql:
-        revocations = [(sn, rev_at) async for sn, rev_at in sql("select serial_number, revoked_at from certificates where revoked_at is not null")]
+        revocations = [(sn, rev_at) async for sn, rev_at in sql('select serial_number, revoked_at from certificates where revoked_at is not null')]
         revoked_at = await sql.value('select now()')
     revocations = set(revocations)
     revocations.add((serial_number, revoked_at))

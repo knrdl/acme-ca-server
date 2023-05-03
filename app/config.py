@@ -1,7 +1,8 @@
 from datetime import timedelta
 from typing import Any, Literal, Optional, Pattern
-from pydantic import BaseSettings, EmailStr, HttpUrl, PostgresDsn, AnyHttpUrl, SecretStr, root_validator
+
 from logger import logger
+from pydantic import AnyHttpUrl, BaseSettings, EmailStr, PostgresDsn, SecretStr, root_validator
 
 
 class WebSettings(BaseSettings):

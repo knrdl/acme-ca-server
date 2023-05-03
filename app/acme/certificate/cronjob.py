@@ -1,6 +1,7 @@
 import asyncio
-import mail
+
 import db
+import mail
 from config import settings
 from logger import logger
 
@@ -41,25 +42,25 @@ async def start():
                         try:
                             await mail.send_certs_will_expire_warn_mail(receiver=mail_addr, domains=domains, expires_at=expires_at, serial_number=serial_number)
                             ok = True
-                        except BaseException:
+                        except Exception:
                             logger.error(
                                 'could not send_certs_will_expire_warn_mail for "%s"', mail_addr, exc_info=True)
                             ok = False
                         if ok:
                             async with db.transaction() as sql:
-                                await sql.exec("update certificates set user_informed_cert_will_expire=true where serial_number=$1", serial_number)
+                                await sql.exec('update certificates set user_informed_cert_will_expire=true where serial_number=$1', serial_number)
                     if is_expired and settings.mail.notify_when_cert_expired:
                         try:
                             await mail.send_certs_expired_info_mail(receiver=mail_addr, domains=domains, expires_at=expires_at, serial_number=serial_number)
                             ok = True
-                        except BaseException:
+                        except Exception:
                             logger.error(
                                 'could not send_certs_expired_info_mail for "%s"', mail_addr, exc_info=True)
                             ok = False
                         if ok:
                             async with db.transaction() as sql:
-                                await sql.exec("update certificates set user_informed_cert_has_expired=true where serial_number=$1", serial_number)
-            except BaseException:
+                                await sql.exec('update certificates set user_informed_cert_has_expired=true where serial_number=$1', serial_number)
+            except Exception:
                 logger.error(
                     'could not inform about expiring certificates', exc_info=True)
             finally:

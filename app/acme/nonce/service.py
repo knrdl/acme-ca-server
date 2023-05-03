@@ -1,7 +1,9 @@
 import secrets
-from ..exceptions import ACMEException
-from fastapi import status
+
 import db
+from fastapi import status
+
+from ..exceptions import ACMEException
 
 
 async def generate() -> str:

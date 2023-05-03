@@ -1,8 +1,9 @@
 import asyncio
-from .service import build_crl_sync, load_ca_sync
-from logger import logger
 
 import db
+from logger import logger
+
+from .service import build_crl_sync, load_ca_sync
 
 
 async def start():
@@ -15,11 +16,11 @@ async def start():
                     ca_cert, ca_key = await asyncio.to_thread(load_ca_sync, cert_pem=cert_pem, key_pem_enc=key_pem_enc)
                     # todo: maybe also include expired certs
                     async with db.transaction(readonly=True) as sql:
-                        revocations = [record async for record in sql("select serial_number, revoked_at from certificates where revoked_at is not null")]
+                        revocations = [record async for record in sql('select serial_number, revoked_at from certificates where revoked_at is not null')]
                     crl, crl_pem = await asyncio.to_thread(build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations)
                     async with db.transaction() as sql:
-                        await sql.exec("update cas set crl_pem = $1 where serial_number = $2", crl_pem, sn)
-            except BaseException:
+                        await sql.exec('update cas set crl_pem = $1 where serial_number = $2', crl_pem, sn)
+            except Exception:
                 logger.error('could not rebuild crl', exc_info=True)
             finally:
                 await asyncio.sleep(12 * 60 * 60)  # rebuild crl every 12h

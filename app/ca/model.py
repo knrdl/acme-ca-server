@@ -1,5 +1,6 @@
-from cryptography import x509
 from dataclasses import dataclass
+
+from cryptography import x509
 
 
 @dataclass

@@ -3,19 +3,19 @@ __version__ = '0.0.0'  # replaced during build, do not change
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.exception_handlers import http_exception_handler
-from fastapi.exceptions import RequestValidationError
-from fastapi.staticfiles import StaticFiles
-from fastapi.exceptions import RequestValidationError
-from acme.exceptions import ACMEException
-import db
-import db.migrations
 import acme
 import ca
+import db
+import db.migrations
 import web
+from acme.exceptions import ACMEException
 from config import settings
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.staticfiles import StaticFiles
+from pydantic import ValidationError
 
 
 @asynccontextmanager
@@ -39,12 +39,12 @@ app.add_middleware(web.middleware.SecurityHeadersMiddleware,
                    })
 
 if settings.web.enabled:
-    @app.get("/endpoints", tags=['web'])
+    @app.get('/endpoints', tags=['web'])
     async def swagger_ui_html():
         return get_swagger_ui_html(
-            openapi_url="/openapi.json",
+            openapi_url='/openapi.json',
             title=app.title,
-            swagger_favicon_url="favicon.png",
+            swagger_favicon_url='favicon.png',
             swagger_css_url='libs/swagger-ui.css',
             swagger_js_url='libs/swagger-ui-bundle.js'
         )

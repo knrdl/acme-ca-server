@@ -1,14 +1,15 @@
 import secrets
-from typing import Annotated, Literal, Optional, Union
-from fastapi import APIRouter, Depends, Response, status
-from pydantic import BaseModel, conlist, constr, root_validator, validator
+from typing import Annotated, Literal, Optional
 
+import db
 import mail
+from config import settings
+from fastapi import APIRouter, Depends, Response, status
+from logger import logger
+from pydantic import BaseModel, conlist, constr
+
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest
-from config import settings
-import db
-from logger import logger
 
 tosAgreedType = Literal[True] if settings.acme.terms_of_service_url else bool
 contactType = conlist(
@@ -48,7 +49,11 @@ api = APIRouter(tags=['acme:account'])
 
 
 @api.post('/new-account')
-async def create_or_view_account(response: Response, data: Annotated[RequestData[NewOrViewAccountPayload], Depends(SignedRequest(NewOrViewAccountPayload, allow_new_account=True))]):
+async def create_or_view_account(
+    response: Response,
+    data: Annotated[RequestData[NewOrViewAccountPayload],
+                    Depends(SignedRequest(NewOrViewAccountPayload, allow_new_account=True))]
+):
     """
     https://www.rfc-editor.org/rfc/rfc8555.html#section-7.3
     """
@@ -56,7 +61,7 @@ async def create_or_view_account(response: Response, data: Annotated[RequestData
 
     async with db.transaction() as sql:
         result = await sql.record(
-            '''select id, mail, status from accounts where jwk=$1 and (id=$2 or $2::text is null)''',
+            'select id, mail, status from accounts where jwk=$1 and (id=$2 or $2::text is null)',
             jwk_json, data.account_id)
     account_exists = bool(result)
 
@@ -71,24 +76,23 @@ async def create_or_view_account(response: Response, data: Annotated[RequestData
             payload = NewAccountPayload(**data.payload.dict())
             mail_addr = payload.mail_addr
             account_id = secrets.token_urlsafe(16)
-
             async with db.transaction() as sql:
-                account_status = await sql.value('''
+                account_status = await sql.value("""
                     insert into accounts (id, mail, jwk) values ($1, $2, $3)
                     returning status
-                ''', account_id, mail_addr, jwk_json)
+                """, account_id, mail_addr, jwk_json)
             try:
                 await mail.send_new_account_info_mail(mail_addr)
-            except Exception as e:
+            except Exception:
                 logger.error('could not send new account mail to "%s"',
                              mail_addr, exc_info=True)
 
     response.status_code = 200 if account_exists else 201
-    response.headers["Location"] = f'{settings.external_url}/acme/accounts/{account_id}'
+    response.headers['Location'] = f'{settings.external_url}/acme/accounts/{account_id}'
     return {
-        "status": account_status,
-        "contact": ['mailto:' + mail_addr],
-        "orders": f'{settings.external_url}/acme/accounts/{account_id}/orders'
+        'status': account_status,
+        'contact': ['mailto:' + mail_addr],
+        'orders': f'{settings.external_url}/acme/accounts/{account_id}/orders'
     }
 
 
@@ -99,17 +103,21 @@ async def change_key(response: Response, data: Annotated[RequestData, Depends(Si
 
 
 @api.post('/accounts/{acc_id}')
-async def view_or_update_account(response: Response, acc_id: str, data: Annotated[RequestData[UpdateAccountPayload], Depends(SignedRequest(UpdateAccountPayload, allow_blocked_account=True))]):
+async def view_or_update_account(
+        response: Response, acc_id: str,
+        data: Annotated[RequestData[UpdateAccountPayload],
+                        Depends(SignedRequest(UpdateAccountPayload, allow_blocked_account=True))]
+):
     if acc_id != data.account_id:
         raise ACMEException(status_code=status.HTTP_403_FORBIDDEN,
-                            type="unauthorized", detail="wrong kid")
+                            type='unauthorized', detail='wrong kid')
 
     if data.payload.contact:
         async with db.transaction() as sql:
             await sql.exec("update accounts set mail=$1 where id = $2 and status = 'valid'", data.payload.mail_addr, acc_id)
         try:
             await mail.send_new_account_info_mail(data.payload.mail_addr)
-        except Exception as e:
+        except Exception:
             logger.error('could not send new account mail to "%s"',
                          data.payload.mail_addr, exc_info=True)
 
@@ -124,9 +132,9 @@ async def view_or_update_account(response: Response, acc_id: str, data: Annotate
         account_status, mail_addr = await sql.record('select status, mail from accounts where id = $1', acc_id)
 
     return {
-        "status": account_status,
-        "contact": ['mailto:' + mail_addr],
-        "orders": f'{settings.external_url}/acme/accounts/{acc_id}/orders'
+        'status': account_status,
+        'contact': ['mailto:' + mail_addr],
+        'orders': f'{settings.external_url}/acme/accounts/{acc_id}/orders'
     }
 
 
@@ -134,9 +142,9 @@ async def view_or_update_account(response: Response, acc_id: str, data: Annotate
 async def view_orders(acc_id: str, data: Annotated[RequestData, Depends(SignedRequest())]):
     if acc_id != data.account_id:
         raise ACMEException(status_code=status.HTTP_403_FORBIDDEN,
-                            type="unauthorized", detail="wrong kid")
+                            type='unauthorized', detail='wrong kid')
     async with db.transaction(readonly=True) as sql:
         orders = [order_id async for order_id, *_ in sql("select id from orders where account_id = $1 and status <> 'invalid'", acc_id)]
     return {
-        "orders": [f'{settings.external_url}/acme/orders/{order_id}' for order_id in orders]
+        'orders': [f'{settings.external_url}/acme/orders/{order_id}' for order_id in orders]
     }
