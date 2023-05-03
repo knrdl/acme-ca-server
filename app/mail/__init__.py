@@ -52,8 +52,10 @@ async def send_new_account_info_mail(receiver: str):
 
 
 async def send_certs_will_expire_warn_mail(*, receiver: str, domains: list[str], expires_at: datetime, serial_number: str):
-    await send_mail(receiver, 'cert-expires-warning', body_vars=dict(domains=domains, expires_at=expires_at, serial_number=serial_number))
+    await send_mail(receiver, 'cert-expires-warning', body_vars=dict(
+        domains=domains, expires_at=expires_at, serial_number=serial_number, expires_in_days=(expires_at.replace(tzinfo=None) - datetime.utcnow()).days))
 
 
 async def send_certs_expired_info_mail(*, receiver: str, domains: list[str], expires_at: datetime, serial_number: str):
-    await send_mail(receiver, 'cert-expired-info', body_vars=dict(domains=domains, expires_at=expires_at, serial_number=serial_number))
+    await send_mail(receiver, 'cert-expired-info', body_vars=dict(
+        domains=domains, expires_at=expires_at, serial_number=serial_number))

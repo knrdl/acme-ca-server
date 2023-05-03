@@ -18,6 +18,8 @@ $ openssl req -new -x509 -nodes -days 3650 -subj "/C=TestCA/O=Demo" -key ca.key 
 
 ## 2. Deploy the container
 
+Docker Compose snippet:
+
 ```yaml
 version: '2.4'
 services:
@@ -71,7 +73,7 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 | Env Var | Default | Description |
 |---------|---------|-------------|
 | EXTERNAL_URL        |         | The HTTPS address the server will be reachable from, e.g. https://acme.mydomain.org             |
-| DB_DSN        |         | Postgres connection string, e.g. postgresql://username:password@host/dbname (database will be initialized on startup)            |
+| DB_DSN        |         | Postgres connection string, e.g. `postgresql://username:password@host/dbname` (database will be initialized on startup)            |
 | ACME_TERMS_OF_SERVICE_URL        | `None`        | Optional URL which the ACME client can show when the user has to accept the terms of service, e.g. https://acme.mydomain.org/terms             |
 | ACME_MAIL_TARGET_REGEX        | any mail address       | restrict the email address which must be provided to the ACME client by the user. E.g. `[^@]+@mydomain\.org` only allows mail addresses from mydomain.org             |
 | ACME_TARGET_DOMAIN_REGEX        | any non-wildcard domain name       | restrict the domain names for which certificates can be requested via ACME. E.g. `[^\*]+\.mydomain\.org` only allows domain names from mydomain.org             |
@@ -103,13 +105,14 @@ Templates consist of `subject.txt` and `body.html` (see [here](./app/mail/templa
 * /app/mail/templates/**cert-expires-warning**/{subject.txt,body.html}
 * /app/mail/templates/**new-account-info**/{subject.txt,body.html}
 
-Parameters:
+Template parameters:
 * `app_title`: `str`  application title from `WEB_APP_TITLE`
 * `app_desc`: `str`  application description from `WEB_APP_DESCRIPTION`
 * `web_url`: `str`  web index url from `EXTERNAL_URL`
 * `acme_url`: `str`  acme directory url
 * `domains`: `list[str]` list of expiring domains
 * `expires_at`: `datetime` domain expiration date
+* `expires_in_days`: `int` days until cert will expire
 * `serial_number`: `str` expiring certs serial number (hex)
 
 ### Web UI
@@ -121,7 +124,7 @@ Overwrite templates (see [here](./app/web/templates)):
 * /app/web/templates/domain-log.html (Domain Listing)
 * /app/web/templates/index.html (Startpage)
 
-Parameters:
+Template parameters:
 * `app_title`: `str`  application title from `WEB_APP_TITLE`
 * `app_desc`: `str`  application description from `WEB_APP_DESCRIPTION`
 * `web_url`: `str`  web index url from `EXTERNAL_URL`
@@ -163,7 +166,7 @@ async def revoke_cert(serial_number: str, revocations: set[tuple[str, datetime]]
 
 * `serial_number`: certificate serial number to revoke as hex value
 * `revocations`: all revoked certificates including the one specified by `serial_number`. It's a set of tuples containing `(serial_number, revocation_date)`
-* *returns*: no error on success
+* *returns*: no error on success, throw exception otherwise
 
 A custom CA backend must also handle the CRL (certificate revocation list) distribution.
 
@@ -180,5 +183,9 @@ flowchart LR
 ```
 
 ## Workflow
+
+TODO
+
+## Dev Setup
 
 TODO
