@@ -178,9 +178,9 @@ async def finalize_order(response: Response, order_id: str, data: Annotated[Requ
     else:
         cert_sn = not_valid_before = not_valid_after = None
         async with db.transaction() as sql:
-            order_status = await sql.value('''
+            order_status = await sql.value("""
                 update orders set status='invalid', error=row($2,$3) where id = $1 returning status
-            ''', order_id, err.type, err.detail_text)
+            """, order_id, err.type, err.detail)
 
     return order_response(
         status=order_status, expires_at=expires_at, domains=domains, authz_ids=authz_ids, order_id=order_id,

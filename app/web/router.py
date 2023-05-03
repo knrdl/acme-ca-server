@@ -1,10 +1,10 @@
+from config import settings
+import db
+
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 from pydantic import constr
-
-import db
-from config import settings
 
 
 template_engine = Environment(
@@ -43,16 +43,15 @@ if settings.web.enable_public_log:
         return await template_engine.get_template('cert-log.html').render_async(**default_params, certs=certs)
 
     @api.get('/certificates/{serial_number}', response_class=Response, responses={
-        200: {"content": {"application/pem-certificate-chain": {}}}
+        200: {'content': {'application/pem-certificate-chain': {}}}
     })
-    async def download_certificate(serial_number: constr(regex="^[0-9A-F]+$")):
+    async def download_certificate(serial_number: constr(regex='^[0-9A-F]+$')):
         async with db.transaction(readonly=True) as sql:
-            pem_chain = await sql.value('''select chain_pem from certificates where serial_number = $1''', serial_number)
+            pem_chain = await sql.value('select chain_pem from certificates where serial_number = $1', serial_number)
         if not pem_chain:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail='unknown certificate')
-        return Response(content=pem_chain,
-                        media_type="application/pem-certificate-chain")
+        return Response(content=pem_chain, media_type='application/pem-certificate-chain')
 
     @api.get('/domains', response_class=HTMLResponse)
     async def domain_log():

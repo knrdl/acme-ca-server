@@ -49,24 +49,30 @@ if settings.web.enabled:
             swagger_js_url='libs/swagger-ui-bundle.js'
         )
 
-# custom exception handler for acme specific response format
-
 
 @app.exception_handler(RequestValidationError)
-async def acme_validation_exception_handler(request: Request, exc: RequestValidationError):
-    if request.url.path.startswith('/acme/'):
-        exc = ACMEException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, type='malformed', detail=exc.json())
-    return await http_exception_handler(request, exc)
-
-
 @app.exception_handler(HTTPException)
-async def acme_http_exception_handler(request: Request, exc: HTTPException):
-    if request.url.path.startswith('/acme/'):
-        if not isinstance(exc, ACMEException):
-            exc = ACMEException(
-                status_code=exc.status_code, type='serverInternal', detail=str(exc.detail))
-    return await http_exception_handler(request, exc)
+@app.exception_handler(ACMEException)
+@app.exception_handler(Exception)
+async def acme_exception_handler(request: Request, exc: Exception):
+    # custom exception handler for acme specific response format
+    if request.url.path.startswith('/acme/') or isinstance(exc, ACMEException):
+        if isinstance(exc, ACMEException):
+            return exc.as_response()
+        elif isinstance(exc, ValidationError):
+            return ACMEException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, type='malformed', detail=exc.json()
+            ).as_response()
+        elif isinstance(exc, HTTPException):
+            return ACMEException(
+                status_code=exc.status_code, type='serverInternal', detail=str(exc.detail)
+            ).as_response()
+        else:
+            return ACMEException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(exc)
+            ).as_response()
+    else:
+        return await http_exception_handler(request, exc)
 
 
 app.include_router(acme.router)

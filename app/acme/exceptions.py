@@ -30,18 +30,31 @@ AcmeExceptionTypes = Literal[
 ]
 
 
-class ACMEException(HTTPException):
-    type: AcmeExceptionTypes
-    detail_text: str
-    value: dict[str, str]
+class ACMEException(Exception):
+    type_: AcmeExceptionTypes
+    detail: str
+    headers: dict[str, str]
+    status_code: int
 
-    def __init__(self, *, type: AcmeExceptionTypes, detail: str = '',
-                 status_code: int = status.HTTP_400_BAD_REQUEST, new_nonce: str = None) -> None:
-        headers = {'Content-Type': 'application/problem+json'}
+    def __init__(
+        self, *, type: AcmeExceptionTypes, detail: str = '',  # noqa: A002 (allow shadowing builtin "type")
+        status_code: int = status.HTTP_400_BAD_REQUEST, new_nonce: str = None
+    ) -> None:
+        self.headers = {}
         if new_nonce:
-            headers['Replay-Nonce'] = new_nonce
-        self.type = type
-        self.detail_text = detail
-        self.value = {
-            "type": "urn:ietf:params:acme:error:" + type, "detail": detail}
-        super().__init__(status_code=status_code, detail=self.value, headers=headers)
+            self.headers['Replay-Nonce'] = new_nonce
+        self.type_ = type
+        self.detail = detail
+        self.status_code = status_code
+
+    @property
+    def value(self):
+        return {'type': 'urn:ietf:params:acme:error:' + self.type_, 'detail': self.detail}
+
+    def as_response(self):
+        return JSONResponse(
+            status_code=self.status_code,
+            content=self.value,
+            headers=self.headers,
+            media_type='application/problem+json'
+        )

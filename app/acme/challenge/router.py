@@ -79,7 +79,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
             async with db.transaction() as sql:
                 chal_status = await sql.value("""
                     update challenges set status = 'invalid', error=row($2,$3) where id = $1 returning status
-                """, chal_id, err.type, err.detail_text)
+                """, chal_id, err.type, err.detail)
                 await sql.exec("update authorizations set status = 'invalid' where id = $1", authz_id)
                 await sql.exec("""
                     update orders set status = 'invalid', error=row('unauthorized', 'challenge failed') where id = $1
