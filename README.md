@@ -1,5 +1,7 @@
 # ACME CA Server
 
+[![Build](https://github.com/knrdl/acme-ca-server/actions/workflows/docker-image.yml/badge.svg)](https://github.com/knrdl/acme-ca-server/actions/workflows/docker-image.yml)
+
 # Features
 
 * **ACME Server** implementation (http-01 challenge)
