@@ -1,21 +1,18 @@
-from config import settings
 import db
-
+from config import settings
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 from pydantic import constr
 
+template_engine = Environment(loader=FileSystemLoader('web/templates'), enable_async=True, autoescape=True)
 
-template_engine = Environment(
-    loader=FileSystemLoader('web/templates'), enable_async=True)
-
-default_params = dict(
-    app_title=settings.web.app_title,
-    app_desc=settings.web.app_description,
-    web_url=settings.external_url,
-    acme_url=settings.external_url + '/acme/directory',
-)
+default_params = {
+    'app_title': settings.web.app_title,
+    'app_desc': settings.web.app_description,
+    'web_url': settings.external_url,
+    'acme_url': settings.external_url + '/acme/directory',
+}
 
 
 api = APIRouter(tags=['web'])
@@ -49,8 +46,7 @@ if settings.web.enable_public_log:
         async with db.transaction(readonly=True) as sql:
             pem_chain = await sql.value('select chain_pem from certificates where serial_number = $1', serial_number)
         if not pem_chain:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail='unknown certificate')
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='unknown certificate')
         return Response(content=pem_chain, media_type='application/pem-certificate-chain')
 
     @api.get('/domains', response_class=HTMLResponse)
@@ -72,10 +68,8 @@ if settings.web.enable_public_log:
 else:
     @api.get('/certificates')
     async def certificate_log():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail='This page is disabled')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This page is disabled')
 
     @api.get('/domains')
     async def domain_log():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail='This page is disabled')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This page is disabled')
