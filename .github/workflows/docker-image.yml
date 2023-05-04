@@ -26,7 +26,7 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -73,7 +73,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ steps.meta.outputs.tags[0] }}'
+          image-ref: '${{ steps.meta.outputs.version }}'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
