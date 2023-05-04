@@ -2,6 +2,8 @@ FROM docker.io/python:3.11-alpine
 
 RUN adduser --no-create-home --disabled-password appuser
 
+RUN apk update --no-cache
+
 WORKDIR /app
 EXPOSE 8080/tcp
 ENV PYTHONUNBUFFERED=True
