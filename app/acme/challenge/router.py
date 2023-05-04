@@ -46,7 +46,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
         acme_error = None
 
     # use append because there can be multiple Link-Headers with different rel targets
-    response.headers.append('Link', f'<{settings.external_url}/authorization/{authz_id}>;rel=up')
+    response.headers.append('Link', f'<{settings.external_url}/authorization/{authz_id}>;rel="up"')
 
     if must_solve_challenge:
         try:
