@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import db
 from logger import logger
 
@@ -28,8 +29,6 @@ async def run():
             await sql.exec('update migrations set migration=$1', next_level)
             dirty = True
         if dirty:
-            logger.info(
-                f'Finished database migrations (current level: {cur_file.name})')
+            logger.info(f'Finished database migrations (current level: {cur_file.name})')
         else:
-            logger.info(
-                f'Database migrations are up to date (current level: {cur_file.name})')
+            logger.info(f'Database migrations are up to date (current level: {cur_file.name})')

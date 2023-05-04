@@ -18,11 +18,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 flake8-builtins flake8-print flake8-quotes flake8-todo  # flake8-import-order
-
+          pip install flake8 flake8-bandit flake8-bugbear flake8-builtins flake8-comprehensions flake8-deprecated flake8-isort flake8-print flake8-quotes flake8-todo
+          
       - name: Check linting
         run: |
           # ignore list:
           # F722: https://stackoverflow.com/questions/64909849/syntax-error-with-flake8-and-pydantic-constrained-types-constrregex
-          python -m flake8 --max-line-length 199 --ignore=F722 .
+          # B008: FastAPI uses by design function calls in arguments for dependency injection
+          echo -e "[settings]\nline_length=179" > .isort.cfg
+          python -m flake8 --max-line-length 179 --ignore=F722,B008 .
 

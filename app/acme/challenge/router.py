@@ -23,8 +23,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
             where chal.id = $1 and ord.account_id = $2 and ord.expires_at > now()
         """, chal_id, data.account_id)
         if not record:
-            raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed',
-                                detail='specified challenge not available for current account')
+            raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed', detail='specified challenge not available for current account')
         authz_id, chal_err, chal_status, authz_status, domain, chal_validated_at, token, order_id, order_status = record
         if order_status == 'invalid':
             await sql.exec("""update authorizations set status = 'invalid' where id = $1""", authz_id)
@@ -47,8 +46,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
         acme_error = None
 
     # use append because there can be multiple Link-Headers with different rel targets
-    response.headers.append(
-        'Link', f'<{settings.external_url}/authorization/{authz_id}>;rel=up')
+    response.headers.append('Link', f'<{settings.external_url}/authorization/{authz_id}>;rel=up')
 
     if must_solve_challenge:
         try:
@@ -57,10 +55,8 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
         except ACMEException as e:
             err = e
         except Exception as e:
-            err = ACMEException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(e))
-            logger.warn('challenge failed for %s (account: %s)',
-                        domain, data.account_id, exc_info=True)
+            err = ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(e))
+            logger.warning('challenge failed for %s (account: %s)', domain, data.account_id, exc_info=True)
         if err is False:
             async with db.transaction() as sql:
                 chal_status, chal_validated_at = await sql.record("""

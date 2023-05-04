@@ -25,8 +25,7 @@ api = APIRouter(tags=['acme:certificate'])
 async def download_cert(
     response: Response, serial_number: constr(regex='^[0-9A-F]+$'),
     data: Annotated[RequestData, Depends(SignedRequest())],
-    accept: str = Header(default='*/*', regex=r'(application/pem\-certificate\-chain|\*/\*)',
-                         description='Certificates are only supported as "application/pem-certificate-chain"')
+    accept: str = Header(default='*/*', regex=r'(application/pem\-certificate\-chain|\*/\*)', description='Certificates are only supported as "application/pem-certificate-chain"')
 ):
     async with db.transaction(readonly=True) as sql:
         pem_chain = await sql.value("""
@@ -35,10 +34,8 @@ async def download_cert(
             where cert.serial_number = $1 and ord.account_id = $2
         """, serial_number, data.account_id)
     if not pem_chain:
-        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed',
-                            detail='specified certificate not found for current account')
-    return Response(content=pem_chain, headers=response.headers,
-                    media_type='application/pem-certificate-chain')
+        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed', detail='specified certificate not found for current account')
+    return Response(content=pem_chain, headers=response.headers, media_type='application/pem-certificate-chain')
 
 
 @api.post('/revoke-cert')
@@ -61,8 +58,7 @@ async def revoke_cert(response: Response, data: Annotated[RequestData[RevokeCert
                 ($2::text is null or (a.id = $2::text and a.status='valid')) and a.jwk=$3
         """, serial_number, data.account_id, jwk_json)
     if not ok:
-        raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST,
-                            type='alreadyRevoked', detail='cert already revoked or not accessible')
+        raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='alreadyRevoked', detail='cert already revoked or not accessible')
     async with db.transaction(readonly=True) as sql:
         revocations = [(sn, rev_at) async for sn, rev_at in sql('select serial_number, revoked_at from certificates where revoked_at is not null')]
         revoked_at = await sql.value('select now()')

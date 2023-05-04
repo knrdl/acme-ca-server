@@ -23,8 +23,7 @@ async def sign_csr(csr: x509.CertificateSigningRequest, subject_domain: str, san
     san_domains: the alternative (additional) requested domain names
     """
     if not settings.ca.enabled:
-        raise Exception(
-            'internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation')
+        raise Exception('internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation')
 
     ca_cert, ca_key = await load_active_ca()
 
@@ -36,8 +35,7 @@ async def sign_csr(csr: x509.CertificateSigningRequest, subject_domain: str, san
 
 async def revoke_cert(serial_number: str, revocations: set[tuple[str, datetime]]) -> None:
     if not settings.ca.enabled:
-        raise Exception(
-            'internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation')
+        raise Exception('internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation')
     ca_cert, ca_key = await load_active_ca()
     crl, crl_pem = await asyncio.to_thread(build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations)
     async with db.transaction() as sql:
@@ -64,8 +62,7 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate,
 
     cert_builder = x509.CertificateBuilder(
         issuer_name=ca_cert.subject,
-        subject_name=x509.Name(
-            [x509.NameAttribute(x509.NameOID.COMMON_NAME, subject_domain)]),
+        subject_name=x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, subject_domain)]),
         serial_number=x509.random_serial_number(),
         not_valid_before=datetime.utcnow(),
         not_valid_after=datetime.utcnow() + settings.ca.cert_lifetime,
@@ -73,8 +70,7 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate,
     ) \
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True) \
         .add_extension(x509.CRLDistributionPoints(distribution_points=[x509.DistributionPoint(full_name=[
-            x509.UniformResourceIdentifier(
-                settings.external_url.removesuffix('/') + f'/ca/{ca_id}/crl')
+            x509.UniformResourceIdentifier(settings.external_url.removesuffix('/') + f'/ca/{ca_id}/crl')
         ], relative_name=None, reasons=None, crl_issuer=None)]), critical=True) \
         .add_extension(x509.SubjectAlternativeName(general_names=[x509.DNSName(domain) for domain in san_domains]), critical=False)
     cert = cert_builder.sign(private_key=ca_key, algorithm=hashes.SHA512(),)
@@ -86,8 +82,7 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate,
     return cert, cert_chain_pem
 
 
-def build_crl_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate,
-                   revocations: set[tuple[str, datetime]]):
+def build_crl_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, revocations: set[tuple[str, datetime]]):
     now = datetime.utcnow()
     builder = x509.CertificateRevocationListBuilder(
         last_update=now,

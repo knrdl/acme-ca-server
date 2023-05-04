@@ -11,8 +11,7 @@ _pool: asyncpg.pool.Pool = None
 
 async def connect():
     global _pool
-    _pool = await asyncpg.create_pool(
-        min_size=0, max_size=20, dsn=settings.db_dsn, init=init_connection, server_settings={'application_name': settings.web.app_title})
+    _pool = await asyncpg.create_pool(min_size=0, max_size=20, dsn=settings.db_dsn, init=init_connection, server_settings={'application_name': settings.web.app_title})
 
 
 async def disconnect():
@@ -39,8 +38,7 @@ class transaction:
 
     async def __aenter__(self, *args, **kwargs):
         self.conn: asyncpg.Connection = await _pool.acquire()
-        self.trans: asyncpg.connection.transaction = self.conn.transaction(
-            readonly=self.readonly)
+        self.trans: asyncpg.connection.transaction = self.conn.transaction(readonly=self.readonly)
         await self.trans.start()
         return self
 
@@ -67,8 +65,7 @@ class transaction:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            logger.debug('Transaction rollback. Reason: %s %s',
-                         exc_type, exc_val, exc_tb)
+            logger.debug('Transaction rollback. Reason: %s %s', exc_type, exc_val, exc_tb)
             await self.trans.rollback()
         else:
             await self.trans.commit()

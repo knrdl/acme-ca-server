@@ -19,6 +19,5 @@ async def refresh(nonce: str) -> str:
         old_nonce_ok = await sql.exec('delete from nonces where id = $1', nonce) == 'DELETE 1'
         await sql.exec('insert into nonces (id) values ($1)', new_nonce)
     if not old_nonce_ok:
-        raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST,
-                            type='badNonce', detail='old nonce is worng', new_nonce=new_nonce)
+        raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='badNonce', detail='old nonce is worng', new_nonce=new_nonce)
     return new_nonce

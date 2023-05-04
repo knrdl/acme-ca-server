@@ -37,8 +37,7 @@ if settings.ca.enabled:
             with open('/import/ca.pem', 'rb') as f:
                 ca_cert_bytes = f.read()
             ca_cert = x509.load_pem_x509_certificate(ca_cert_bytes, None)
-            serial_number = SerialNumberConverter.int2hex(
-                ca_cert.serial_number)
+            serial_number = SerialNumberConverter.int2hex(ca_cert.serial_number)
 
             async with db.transaction(readonly=True) as sql:
                 revocations = [record async for record in sql('select serial_number, revoked_at from certificates where revoked_at is not null')]
@@ -56,11 +55,9 @@ if settings.ca.enabled:
             async with db.transaction() as sql:
                 ok = await sql.value('select count(serial_number)=1 from cas where active=true')
             if not ok:
-                raise Exception(
-                    'internal ca is enabled but no CA certificate is registered and active. Please import one first.')
+                raise Exception('internal ca is enabled but no CA certificate is registered and active. Please import one first.')
 
         await cronjob.start()
 else:
     async def init():
-        logger.info(
-            'Builtin CA is disabled, relying on custom CA implementation')
+        logger.info('Builtin CA is disabled, relying on custom CA implementation')

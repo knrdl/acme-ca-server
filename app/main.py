@@ -31,12 +31,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan, version=__version__, redoc_url=None, docs_url=None,
     title=settings.web.app_title, description=settings.web.app_description)
-app.add_middleware(web.middleware.SecurityHeadersMiddleware,
-                   content_security_policy={
-                       '/acme/': "base-uri 'self'; default-src 'none';",
-                       '/endpoints': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-src 'none'; img-src 'self' data:;",
-                       '/': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'none'; img-src 'self' data:;"
-                   })
+app.add_middleware(
+    web.middleware.SecurityHeadersMiddleware,
+    content_security_policy={
+        '/acme/': "base-uri 'self'; default-src 'none';",
+        '/endpoints': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-src 'none'; img-src 'self' data:;",
+        '/': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'none'; img-src 'self' data:;"
+    })
 
 if settings.web.enabled:
     @app.get('/endpoints', tags=['web'])
@@ -60,17 +61,11 @@ async def acme_exception_handler(request: Request, exc: Exception):
         if isinstance(exc, ACMEException):
             return exc.as_response()
         elif isinstance(exc, ValidationError):
-            return ACMEException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, type='malformed', detail=exc.json()
-            ).as_response()
+            return ACMEException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, type='malformed', detail=exc.json()).as_response()
         elif isinstance(exc, HTTPException):
-            return ACMEException(
-                status_code=exc.status_code, type='serverInternal', detail=str(exc.detail)
-            ).as_response()
+            return ACMEException(status_code=exc.status_code, type='serverInternal', detail=str(exc.detail)).as_response()
         else:
-            return ACMEException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(exc)
-            ).as_response()
+            return ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(exc)).as_response()
     else:
         return await http_exception_handler(request, exc)
 
