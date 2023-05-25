@@ -41,7 +41,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
                 """, chal_id)
                 chal_status = 'invalid'
     if chal_err:
-        acme_error = ACMEException(type=chal_err.type, detail=chal_err.detail)
+        acme_error = ACMEException(type=chal_err.get('type'), detail=chal_err.get('detail'))
     else:
         acme_error = None
 
@@ -75,7 +75,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
             async with db.transaction() as sql:
                 chal_status = await sql.value("""
                     update challenges set status = 'invalid', error=row($2,$3) where id = $1 returning status
-                """, chal_id, err.type, err.detail)
+                """, chal_id, err.exc_type, err.detail)
                 await sql.exec("update authorizations set status = 'invalid' where id = $1", authz_id)
                 await sql.exec("""
                     update orders set status = 'invalid', error=row('unauthorized', 'challenge failed') where id = $1

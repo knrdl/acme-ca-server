@@ -32,7 +32,7 @@ AcmeExceptionTypes = Literal[
 
 
 class ACMEException(Exception):
-    type_: AcmeExceptionTypes
+    exc_type: AcmeExceptionTypes
     detail: str
     headers: dict[str, str]
     status_code: int
@@ -44,13 +44,13 @@ class ACMEException(Exception):
         self.headers = {}
         if new_nonce:
             self.headers['Replay-Nonce'] = new_nonce
-        self.type_ = type
+        self.exc_type = type
         self.detail = detail
         self.status_code = status_code
 
     @property
     def value(self):
-        return {'type': 'urn:ietf:params:acme:error:' + self.type_, 'detail': self.detail}
+        return {'type': 'urn:ietf:params:acme:error:' + self.exc_type, 'detail': self.detail}
 
     def as_response(self):
         return JSONResponse(
@@ -59,3 +59,6 @@ class ACMEException(Exception):
             headers=self.headers,
             media_type='application/problem+json'
         )
+
+    def __repr__(self) -> str:
+        return f'ACME-Exception({self.value})'
