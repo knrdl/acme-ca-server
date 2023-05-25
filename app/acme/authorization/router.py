@@ -53,7 +53,6 @@ async def view_or_update_authorization(
             'expires': expires_at,
             'identifier': {'type': 'dns', 'value': domain},
             'challenges': [{k: v for k, v in chal.items() if v is not None}],
-            'wildcard': False
         }
     else:
         raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed', detail='specified authorization not found for current account')
