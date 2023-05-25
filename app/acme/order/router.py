@@ -23,8 +23,8 @@ class NewOrderDomain(BaseModel):
 
 class NewOrderPayload(BaseModel):
     identifiers: conlist(NewOrderDomain, min_items=1)
-    notBefore: Optional[datetime] = None  # todo: not evaluated (optional)
-    notAfter: Optional[datetime] = None  # todo: not evaluated (optional)
+    notBefore: Optional[datetime] = None
+    notAfter: Optional[datetime] = None
 
 
 class FinalizeOrderPayload(BaseModel):
@@ -52,8 +52,11 @@ api = APIRouter(tags=['acme:order'])
 
 @api.post('/new-order', status_code=201)
 async def submit_order(response: Response, data: Annotated[RequestData[NewOrderPayload], Depends(SignedRequest(NewOrderPayload))]):
-    domains: list[str] = [
-        identifier.value for identifier in data.payload.identifiers]
+    if data.payload.notBefore is not None or data.payload.notAfter is not None:
+        raise ACMEException(type='malformed',
+                            detail='Parameter notBefore and notAfter may not be specified as the constraints might cannot be enforced.')
+
+    domains: list[str] = [identifier.value for identifier in data.payload.identifiers]
 
     def generate_tokens_sync(domains):
         order_id = secrets.token_urlsafe(16)
