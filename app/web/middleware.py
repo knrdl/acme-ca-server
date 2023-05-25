@@ -18,7 +18,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         :param request: Incoming request
         :param call_next: Function to process the request
-        :return: Return response coming from from processed request
+        :return: Return response coming from processed request
         """
         headers = {
             'Cross-Origin-Opener-Policy': 'same-origin',
@@ -26,6 +26,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             'X-Content-Type-Options': 'nosniff',
             'X-Frame-Options': 'DENY',
             'X-XSS-Protection': '1; mode=block',
+            'Strict-Transport-Security': 'max-age=31536000',
         }
         if self.csp:
             matches = [
