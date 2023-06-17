@@ -72,7 +72,7 @@ async def acme_exception_handler(request: Request, exc: Exception):
         if isinstance(exc, HTTPException):
             return await http_exception_handler(request, exc)
         else:
-            return JSONResponse({"detail": str(exc)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JSONResponse({'detail': str(exc)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 app.include_router(acme.router)
