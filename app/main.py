@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -68,7 +69,10 @@ async def acme_exception_handler(request: Request, exc: Exception):
         else:
             return ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(exc)).as_response()
     else:
-        return await http_exception_handler(request, exc)
+        if isinstance(exc, HTTPException):
+            return await http_exception_handler(request, exc)
+        else:
+            return JSONResponse({"detail": str(exc)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 app.include_router(acme.router)
