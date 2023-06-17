@@ -1,8 +1,9 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, Response, status
+
 import db
 from config import settings
-from fastapi import APIRouter, Depends, Response, status
 from logger import logger
 
 from ..exceptions import ACMEException

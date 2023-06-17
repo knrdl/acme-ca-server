@@ -3,13 +3,14 @@ import secrets
 from datetime import datetime
 from typing import Annotated, Literal, Optional
 
+from fastapi import APIRouter, Depends, Response, status
+from jwcrypto.common import base64url_decode
+from pydantic import BaseModel, conlist, constr
+
 import db
 from ca import service as ca_service
 from config import settings
-from fastapi import APIRouter, Depends, Response, status
-from jwcrypto.common import base64url_decode
 from logger import logger
-from pydantic import BaseModel, conlist, constr
 
 from ..certificate.service import SerialNumberConverter, check_csr
 from ..exceptions import ACMEException

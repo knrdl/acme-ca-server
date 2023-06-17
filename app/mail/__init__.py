@@ -3,8 +3,9 @@ from email.mime.text import MIMEText
 from typing import Literal
 
 from aiosmtplib import SMTP
-from config import settings
 from jinja2 import Environment, FileSystemLoader
+
+from config import settings
 from logger import logger
 
 template_engine = Environment(loader=FileSystemLoader('mail/templates'), enable_async=True, autoescape=True)

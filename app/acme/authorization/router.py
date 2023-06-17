@@ -1,9 +1,10 @@
 from typing import Annotated, Literal, Optional
 
-import db
-from config import settings
 from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel
+
+import db
+from config import settings
 
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest

@@ -1,14 +1,15 @@
 import json
 from typing import Any, Generic, Literal, Optional, TypeVar, Union
 
-import db
 import jwcrypto.jwk
 import jwcrypto.jws
-from config import settings
 from fastapi import Body, Header, Request, Response, status
 from jwcrypto.common import base64url_decode
 from pydantic import AnyHttpUrl, BaseModel, constr, root_validator
 from pydantic.generics import GenericModel
+
+import db
+from config import settings
 
 from .exceptions import ACMEException
 from .nonce import service as nonce_service

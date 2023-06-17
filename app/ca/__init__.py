@@ -1,14 +1,15 @@
 import asyncio
 from pathlib import Path
 
-import db
-from acme.certificate.service import SerialNumberConverter
-from config import settings
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from fastapi import APIRouter, Response
-from logger import logger
 from pydantic import constr
+
+import db
+from acme.certificate.service import SerialNumberConverter
+from config import settings
+from logger import logger
 
 router = APIRouter(prefix='/ca', tags=['ca'])
 

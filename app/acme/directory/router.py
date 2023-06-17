@@ -1,5 +1,6 @@
-from config import settings
 from fastapi import APIRouter
+
+from config import settings
 
 api = APIRouter(tags=['acme:directory'])
 
