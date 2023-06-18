@@ -8,6 +8,11 @@
         padding-bottom: .5rem;
     }
 
+    form {
+        border: 1px solid #ccc;
+        padding: 2rem;
+    }
+
     ul {
         display: inline;
         list-style: disc;
@@ -36,6 +41,31 @@
 {% endblock %}
 {% block content %}
 <h2>Domains</h2>
+
+<form method="get" action="">
+    <fieldset>
+        <legend>
+            <h3>filter domain status</h3>
+        </legend>
+        <div class="row">
+            <label>
+                <input type="radio" name="status" value="all" {{ "checked" if status=="all" }}> all
+            </label>
+            <label>
+                <input type="radio" name="status" value="valid" {{ "checked" if status=="valid" }}> valid
+            </label>
+            <label>
+                <input type="radio" name="status" value="invalid" {{ "checked" if status=="invalid" }}> invalid
+            </label>
+        </div>
+    </fieldset>
+    <label>
+        <h3>filter domain name</h3>
+        <input type="text" name="domainfilter" value="{{domainfilter}}" placeholder="searchtext">
+    </label>
+    <button type="submit">filter</button>
+</form>
+
 <table>
     <thead>
         <tr>
@@ -49,7 +79,8 @@
         {% for domain in domains %}
         <tr>
             <td class="{{'valid' if domain.is_valid else 'invalid' }}">&nbsp;</td>
-            <td><a href="https://{{domain.domain_name}}" target="_blank" rel="noopener noreferrer">{{domain.domain_name}}</a></td>
+            <td><a href="https://{{domain.domain_name}}" target="_blank"
+                    rel="noopener noreferrer">{{domain.domain_name}}</a></td>
             <td>{{domain.first_requested_at.strftime('%Y-%m-%d')}}</td>
             <td>{{domain.expires_at.strftime('%Y-%m-%d')}}</td>
         </tr>

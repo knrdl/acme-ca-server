@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# also works: alias docker='podman'
+
 # cleanup
 docker rm -f -v test_db
 docker rm -f -v test_server

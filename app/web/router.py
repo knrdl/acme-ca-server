@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
@@ -51,21 +53,26 @@ if settings.web.enable_public_log:
         return Response(content=pem_chain, media_type='application/pem-certificate-chain')
 
     @api.get('/domains', response_class=HTMLResponse)
-    async def domain_log():
+    async def domain_log(domainfilter: str = '', status: Literal['all', 'valid', 'invalid'] = 'all'):
         async with db.transaction(readonly=True) as sql:
             domains = [record async for record in sql("""
-                select
-                    authz.domain as domain_name,
-                    min(cert.not_valid_before) as first_requested_at,
-                    max(cert.not_valid_after) as expires_at,
-                    max(cert.not_valid_after) FILTER (WHERE revoked_at is null) > now() AS is_valid
-                from orders ord
-                join authorizations authz on authz.order_id = ord.id
-                join certificates cert on cert.order_id = ord.id
-                group by authz.domain
-                order by authz.domain
-            """)]
-        return await template_engine.get_template('domain-log.html').render_async(**default_params, domains=domains)
+                with data as (
+                    select
+                        authz.domain as domain_name,
+                        min(cert.not_valid_before) as first_requested_at,
+                        max(cert.not_valid_after) as expires_at,
+                        (max(cert.not_valid_after) FILTER (WHERE revoked_at is null)) > now() AS is_valid
+                    from orders ord
+                    join authorizations authz on authz.order_id = ord.id
+                    join certificates cert on cert.order_id = ord.id
+                    where ($1::text = '' or authz.domain ilike '%' || $1::text || '%')
+                    group by authz.domain
+                )
+                select * from data
+                where ($2 = 'all' or ($2 = 'valid' and is_valid) or ($2 = 'invalid' and not is_valid))
+                order by domain_name
+            """, domainfilter.replace('*', '%'), status)]
+        return await template_engine.get_template('domain-log.html').render_async(**default_params, domains=domains, status=status, domainfilter=domainfilter)
 else:
     @api.get('/certificates')
     async def certificate_log():
