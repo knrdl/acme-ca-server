@@ -24,7 +24,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
             where chal.id = $1 and ord.account_id = $2 and ord.expires_at > now()
         """, chal_id, data.account_id)
         if not record:
-            raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed', detail='specified challenge not available for current account')
+            raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed', detail='specified challenge not available for current account', new_nonce=data.new_nonce)
         authz_id, chal_err, chal_status, authz_status, domain, chal_validated_at, token, order_id, order_status = record
         if order_status == 'invalid':
             await sql.exec("""update authorizations set status = 'invalid' where id = $1""", authz_id)
@@ -42,7 +42,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
                 """, chal_id)
                 chal_status = 'invalid'
     if chal_err:
-        acme_error = ACMEException(type=chal_err.get('type'), detail=chal_err.get('detail'))
+        acme_error = ACMEException(type=chal_err.get('type'), detail=chal_err.get('detail'), new_nonce=data.new_nonce)
     else:
         acme_error = None
 
@@ -51,12 +51,12 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
 
     if must_solve_challenge:
         try:
-            await service.check_challenge_is_fulfilled(domain=domain, token=token, jwk=data.key)
+            await service.check_challenge_is_fulfilled(domain=domain, token=token, jwk=data.key, new_nonce=data.new_nonce)
             err = False
         except ACMEException as e:
             err = e
         except Exception as e:
-            err = ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(e))
+            err = ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(e), new_nonce=data.new_nonce)
             logger.warning('challenge failed for %s (account: %s)', domain, data.account_id, exc_info=True)
         if err is False:
             async with db.transaction() as sql:

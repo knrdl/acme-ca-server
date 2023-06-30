@@ -3,6 +3,8 @@ from typing import Literal
 from fastapi import status
 from fastapi.responses import JSONResponse
 
+from config import settings
+
 AcmeExceptionTypes = Literal[
     'accountDoesNotExist',
     'alreadyRevoked',
@@ -36,14 +38,16 @@ class ACMEException(Exception):
     detail: str
     headers: dict[str, str]
     status_code: int
+    new_nonce: str | None
 
     def __init__(
         self, *, type: AcmeExceptionTypes, detail: str = '',  # noqa: A002 (allow shadowing builtin "type")
-        status_code: int = status.HTTP_400_BAD_REQUEST, new_nonce: str = None
+        status_code: int = status.HTTP_400_BAD_REQUEST, new_nonce: str | None = None
     ) -> None:
-        self.headers = {}
-        if new_nonce:
-            self.headers['Replay-Nonce'] = new_nonce
+        self.headers = {'Link': f'<{settings.external_url}/acme/directory>;rel="index"'}
+        # when a new nonce is already created it should also be used in the exception case
+        # however if there is none yet, a new one gets generated in as_response()
+        self.new_nonce = new_nonce
         self.exc_type = type
         self.detail = detail
         self.status_code = status_code
@@ -52,11 +56,14 @@ class ACMEException(Exception):
     def value(self):
         return {'type': 'urn:ietf:params:acme:error:' + self.exc_type, 'detail': self.detail}
 
-    def as_response(self):
+    async def as_response(self):
+        if not self.new_nonce:
+            from .nonce.service import generate as generate_nonce  # import here to prevent circular import
+            self.new_nonce = await generate_nonce()
         return JSONResponse(
             status_code=self.status_code,
             content=self.value,
-            headers=self.headers,
+            headers=dict(self.headers, **{'Replay-Nonce': self.new_nonce}),
             media_type='application/problem+json'
         )
 

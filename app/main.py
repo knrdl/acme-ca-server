@@ -61,13 +61,13 @@ async def acme_exception_handler(request: Request, exc: Exception):
     # custom exception handler for acme specific response format
     if request.url.path.startswith('/acme/') or isinstance(exc, ACMEException):
         if isinstance(exc, ACMEException):
-            return exc.as_response()
+            return await exc.as_response()
         elif isinstance(exc, ValidationError):
-            return ACMEException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, type='malformed', detail=exc.json()).as_response()
+            return await ACMEException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, type='malformed', detail=exc.json()).as_response()
         elif isinstance(exc, HTTPException):
-            return ACMEException(status_code=exc.status_code, type='serverInternal', detail=str(exc.detail)).as_response()
+            return await ACMEException(status_code=exc.status_code, type='serverInternal', detail=str(exc.detail)).as_response()
         else:
-            return ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(exc)).as_response()
+            return await ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(exc)).as_response()
     else:
         if isinstance(exc, HTTPException):
             return await http_exception_handler(request, exc)

@@ -68,7 +68,7 @@ async def create_or_view_account(
         account_id, account_status, mail_addr = result['id'], result['status'], result['mail']
     else:
         if data.payload.onlyReturnExisting:
-            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='accountDoesNotExist', detail='Account does not exist')
+            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='accountDoesNotExist', detail='Account does not exist', new_nonce=data.new_nonce)
         else:  # create new account
             # NewAccountPayload contains more checks than NewOrViewAccountPayload
             payload = NewAccountPayload(**data.payload.dict())
@@ -94,18 +94,18 @@ async def create_or_view_account(
 
 
 @api.post('/key-change')
-async def change_key(response: Response, data: Annotated[RequestData, Depends(SignedRequest())]):
-    raise ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail='not implemented')  # todo
+async def change_key(data: Annotated[RequestData, Depends(SignedRequest())]):
+    raise ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail='not implemented', new_nonce=data.new_nonce)  # todo
 
 
 @api.post('/accounts/{acc_id}')
 async def view_or_update_account(
-        response: Response, acc_id: str,
+        acc_id: str,
         data: Annotated[RequestData[UpdateAccountPayload],
                         Depends(SignedRequest(UpdateAccountPayload, allow_blocked_account=True))]
 ):
     if acc_id != data.account_id:
-        raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, type='unauthorized', detail='wrong kid')
+        raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, type='unauthorized', detail='wrong kid', new_nonce=data.new_nonce)
 
     if data.payload.contact:
         async with db.transaction() as sql:
@@ -135,7 +135,7 @@ async def view_or_update_account(
 @api.post('/accounts/{acc_id}/orders', tags=['acme:order'])
 async def view_orders(acc_id: str, data: Annotated[RequestData, Depends(SignedRequest())]):
     if acc_id != data.account_id:
-        raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, type='unauthorized', detail='wrong kid')
+        raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, type='unauthorized', detail='wrong account id provided', new_nonce=data.new_nonce)
     async with db.transaction(readonly=True) as sql:
         orders = [order_id async for order_id, *_ in sql("select id from orders where account_id = $1 and status <> 'invalid'", acc_id)]
     return {

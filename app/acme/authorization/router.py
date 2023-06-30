@@ -1,6 +1,6 @@
 from typing import Annotated, Literal, Optional
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
 import db
@@ -19,7 +19,7 @@ api = APIRouter(tags=['acme:authorization'])
 
 @api.post('/authorizations/{authz_id}')
 async def view_or_update_authorization(
-    response: Response, authz_id: str,
+    authz_id: str,
     data: Annotated[RequestData[Optional[UpdateAuthzPayload]],
                     Depends(SignedRequest(Optional[UpdateAuthzPayload]))]
 ):
@@ -56,9 +56,9 @@ async def view_or_update_authorization(
             'challenges': [{k: v for k, v in chal.items() if v is not None}],
         }
     else:
-        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed', detail='specified authorization not found for current account')
+        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, type='malformed', detail='specified authorization not found for current account', new_nonce=data.new_nonce)
 
 
 @api.post('/new-authz')
-async def new_pre_authz(response: Response, data: Annotated[RequestData, Depends(SignedRequest())]):
-    raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, type='unauthorized', detail='pre authorization is not supported')
+async def new_pre_authz(data: Annotated[RequestData, Depends(SignedRequest())]):
+    raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, type='unauthorized', detail='pre authorization is not supported', new_nonce=data.new_nonce)
