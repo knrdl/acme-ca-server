@@ -1,0 +1,4 @@
+FROM debian:latest
+
+RUN apt-get update && apt-get install -y uacme nginx && \
+    mkdir -p /var/www/html/.well-known/acme-challenge

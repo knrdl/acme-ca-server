@@ -138,6 +138,31 @@ done
 
 docker kill test_caddy
 
+# uacme
+
+rm -rf uacmedata
+mkdir uacmedata
+
+docker build --pull -t uacme -f Dockerfile.uacme
+
+echo "uacme 1"
+docker run -it --rm --name test_uacme1 --net test_net -v "$PWD/uacmedata:/uacme" \
+     uacme uacme -v -c /uacme \
+     --acme-url http://acme.example.org:8080/acme/directory new uacme@example.org
+
+echo "uacme 2"
+docker run -it --rm --name test_uacme2 --net test_net -v "$PWD/uacmedata:/uacme" \
+     --network-alias host30.example.org -e UACME_CHALLENGE_PATH=/var/www/html/.well-known/acme-challenge uacme \
+     bash -c "nginx -g 'daemon on;' && uacme -vvv -c /uacme -h /usr/share/uacme/uacme.sh \
+     --acme-url http://acme.example.org:8080/acme/directory issue host30.example.org"
+
+echo "uacme 3"
+docker run -it --rm --name test_uacme1 --net test_net \
+     uacme uacme -v -y -c /tmp \
+     --acme-url http://acme.example.org:8080/acme/directory new || true
+
+
+
 docker kill test_server
 docker logs test_server
 docker rm test_server
