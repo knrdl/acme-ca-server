@@ -76,6 +76,7 @@ async def acme_exception_handler(request: Request, exc: Exception):
 
 
 app.include_router(acme.router)
+app.include_router(acme.directory_router.api)  # serve acme directory under /acme/directory and /directory
 app.include_router(ca.router)
 
 if settings.web.enabled:
