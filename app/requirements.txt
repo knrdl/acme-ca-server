@@ -6,4 +6,4 @@ httpx~=0.24.1
 jinja2~=3.1.2
 jwcrypto~=1.5.0
 pydantic[email]<3.0  # todo: update when fastapi has moved on to pydantic 2.x
-uvicorn[standard]~=0.23.0
+uvicorn[standard]~=0.23.2
