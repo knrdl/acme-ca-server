@@ -1,5 +1,5 @@
 import json
-from typing import Any, Generic, Literal, Optional, TypeVar, Union
+from typing import Generic, Literal, TypeVar
 
 import jwcrypto.jwk
 import jwcrypto.jws
@@ -48,7 +48,7 @@ class Protected(BaseModel):
     url: AnyHttpUrl
 
     @model_validator(mode='after')
-    def valid_check(self) -> "Protected":
+    def valid_check(self) -> 'Protected':
         if not self.jwk and not self.kid:
             raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='malformed', detail='either jwk or kid must be set')
         if self.jwk and self.kid:

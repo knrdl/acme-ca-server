@@ -1,5 +1,5 @@
 import secrets
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel, conlist, constr

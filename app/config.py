@@ -24,7 +24,7 @@ class CaSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix='ca_')
 
     @model_validator(mode='after')
-    def valid_check(self) -> "CaSettings":
+    def valid_check(self) -> 'CaSettings':
         if self.enabled:
             if not self.encryption_key:
                 from cryptography.fernet import Fernet
@@ -59,7 +59,7 @@ class MailSettings(BaseSettings):
         return values
 
     @model_validator(mode='after')
-    def valid_check(self) -> "MailSettings":
+    def valid_check(self) -> 'MailSettings':
         if self.enabled and (not self.host or not self.sender):
             raise Exception('Mail parameters (mail_host, mail_sender) are missing as SMTP is enabled')
         if (self.username and not self.password) or (not self.username and self.password):
@@ -93,7 +93,7 @@ class Settings(BaseSettings):
         return data
 
     @model_validator(mode='after')
-    def valid_check(self) -> "Settings":
+    def valid_check(self) -> 'Settings':
         if self.external_url.scheme != 'https':
             logger.warning('Env Var "external_url" is not HTTPS. This is insecure!')
         if self.mail.warn_before_cert_expires and self.ca.enabled and self.mail.enabled:

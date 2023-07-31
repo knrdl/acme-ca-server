@@ -28,6 +28,6 @@ jobs:
           # F722: https://stackoverflow.com/questions/64909849/syntax-error-with-flake8-and-pydantic-constrained-types-constrregex
           # B008: FastAPI uses by design function calls in arguments for dependency injection
           echo -e "[settings]\nline_length=179" > .isort.cfg
-          python -m flake8 --max-line-length 179 --ignore=F722,B008,I001,I004 .
+          python -m flake8 --max-line-length 179 --ignore=F722,B008,I001,I004,I005 .
           semgrep scan --config=auto .
 
