@@ -17,7 +17,7 @@ class SerialNumberConverter:
         return int(number, 16)
 
 
-async def check_csr(csr_der: bytes, ordered_domains: list[str], new_nonce: str = None):
+async def check_csr(csr_der: bytes, ordered_domains: list[str], new_nonce: str | None = None):
     """
     check csr and return contained values
     """

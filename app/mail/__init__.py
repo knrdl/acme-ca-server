@@ -12,8 +12,8 @@ template_engine = Environment(loader=FileSystemLoader('mail/templates'), enable_
 default_params = {
     'app_title': settings.web.app_title,
     'app_desc': settings.web.app_description,
-    'web_url': settings.external_url,
-    'acme_url': settings.external_url + '/acme/directory'
+    'web_url': str(settings.external_url),
+    'acme_url': str(settings.external_url).removesuffix('/') + '/acme/directory'
 }
 
 Templates = Literal[

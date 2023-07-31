@@ -19,11 +19,11 @@ from ..middleware import RequestData, SignedRequest
 
 class NewOrderDomain(BaseModel):
     type: Literal['dns']  # noqa: A003 (allow shadowing builtin "type")
-    value: constr(regex=f'^{settings.acme.target_domain_regex.pattern}$')
+    value: constr(pattern=f'^{settings.acme.target_domain_regex.pattern}$')
 
 
 class NewOrderPayload(BaseModel):
-    identifiers: conlist(NewOrderDomain, min_items=1)
+    identifiers: conlist(NewOrderDomain, min_length=1)
     notBefore: Optional[datetime] = None
     notAfter: Optional[datetime] = None
 
@@ -39,12 +39,12 @@ def order_response(
         'status': status,
         'expires': expires_at,
         'identifiers': [{'type': 'dns', 'value': domain} for domain in domains],
-        'authorizations': [f'{settings.external_url}/acme/authorizations/{authz_id}' for authz_id in authz_ids],
-        'finalize': f'{settings.external_url}/acme/orders/{order_id}/finalize',
+        'authorizations': [f'{settings.external_url}acme/authorizations/{authz_id}' for authz_id in authz_ids],
+        'finalize': f'{settings.external_url}acme/orders/{order_id}/finalize',
         'error': error.value if error else None,
         'notBefore': not_valid_before,
         'notAfter': not_valid_after,
-        'certificate': f'{settings.external_url}/acme/certificates/{cert_serial_number}' if cert_serial_number else None
+        'certificate': f'{settings.external_url}acme/certificates/{cert_serial_number}' if cert_serial_number else None
     }
 
 
@@ -79,7 +79,7 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
         await sql.execmany("""insert into challenges (id, authz_id, token) values ($1, $2, $3)""",
                            *[(chal_ids[domain], authz_ids[domain], chal_tkns[domain]) for domain in domains])
 
-    response.headers['Location'] = f'{settings.external_url}/acme/orders/{order_id}'
+    response.headers['Location'] = f'{settings.external_url}acme/orders/{order_id}'
     return order_response(
         status=order_status,
         expires_at=expires_at,

@@ -13,8 +13,8 @@ template_engine = Environment(loader=FileSystemLoader('web/templates'), enable_a
 default_params = {
     'app_title': settings.web.app_title,
     'app_desc': settings.web.app_description,
-    'web_url': settings.external_url,
-    'acme_url': settings.external_url + '/acme/directory',
+    'web_url': str(settings.external_url),
+    'acme_url': str(settings.external_url).removesuffix('/') + '/acme/directory',
 }
 
 
@@ -45,7 +45,7 @@ if settings.web.enable_public_log:
     @api.get('/certificates/{serial_number}', response_class=Response, responses={
         200: {'content': {'application/pem-certificate-chain': {}}}
     })
-    async def download_certificate(serial_number: constr(regex='^[0-9A-F]+$')):
+    async def download_certificate(serial_number: constr(pattern='^[0-9A-F]+$')):
         async with db.transaction(readonly=True) as sql:
             pem_chain = await sql.value('select chain_pem from certificates where serial_number = $1', serial_number)
         if not pem_chain:

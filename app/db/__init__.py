@@ -12,7 +12,7 @@ _pool: asyncpg.pool.Pool = None
 
 async def connect():
     global _pool
-    _pool = await asyncpg.create_pool(min_size=0, max_size=20, dsn=settings.db_dsn, init=init_connection, server_settings={'application_name': settings.web.app_title})
+    _pool = await asyncpg.create_pool(min_size=0, max_size=20, dsn=str(settings.db_dsn), init=init_connection, server_settings={'application_name': settings.web.app_title})
 
 
 async def disconnect():

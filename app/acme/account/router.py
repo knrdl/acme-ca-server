@@ -14,8 +14,8 @@ from ..middleware import RequestData, SignedRequest
 
 tosAgreedType = Literal[True] if settings.acme.terms_of_service_url else bool
 contactType = conlist(
-    constr(strip_whitespace=True, to_lower=True, regex=f'^mailto:{settings.acme.mail_target_regex.pattern}$'),
-    min_items=1, max_items=1
+    constr(strip_whitespace=True, to_lower=True, pattern=f'^mailto:{settings.acme.mail_target_regex.pattern}$'),
+    min_length=1, max_length=1
 )
 
 
@@ -36,8 +36,8 @@ class NewAccountPayload(BaseModel):
 
 
 class UpdateAccountPayload(BaseModel):
-    status: Optional[Literal['deactivated']]
-    contact: Optional[contactType]
+    status: Literal['deactivated'] | None = None
+    contact: contactType | None = None
 
     @property
     def mail_addr(self) -> str | None:
@@ -85,11 +85,11 @@ async def create_or_view_account(
                 logger.error('could not send new account mail to "%s"', mail_addr, exc_info=True)
 
     response.status_code = 200 if account_exists else 201
-    response.headers['Location'] = f'{settings.external_url}/acme/accounts/{account_id}'
+    response.headers['Location'] = f'{settings.external_url}acme/accounts/{account_id}'
     return {
         'status': account_status,
         'contact': ['mailto:' + mail_addr],
-        'orders': f'{settings.external_url}/acme/accounts/{account_id}/orders'
+        'orders': f'{settings.external_url}acme/accounts/{account_id}/orders'
     }
 
 
@@ -128,7 +128,7 @@ async def view_or_update_account(
     return {
         'status': account_status,
         'contact': ['mailto:' + mail_addr],
-        'orders': f'{settings.external_url}/acme/accounts/{acc_id}/orders'
+        'orders': f'{settings.external_url}acme/accounts/{acc_id}/orders'
     }
 
 
@@ -139,5 +139,5 @@ async def view_orders(acc_id: str, data: Annotated[RequestData, Depends(SignedRe
     async with db.transaction(readonly=True) as sql:
         orders = [order_id async for order_id, *_ in sql("select id from orders where account_id = $1 and status <> 'invalid'", acc_id)]
     return {
-        'orders': [f'{settings.external_url}/acme/orders/{order_id}' for order_id in orders]
+        'orders': [f'{settings.external_url}acme/orders/{order_id}' for order_id in orders]
     }

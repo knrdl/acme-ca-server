@@ -14,7 +14,7 @@ from .service import SerialNumberConverter, parse_cert
 
 class RevokeCertPayload(BaseModel):
     certificate: constr(min_length=1, max_length=1 * 1024**2)
-    reason: Optional[int]  # not evaluated
+    reason: int | None = None  # not evaluated
 
 
 api = APIRouter(tags=['acme:certificate'])
@@ -24,9 +24,10 @@ api = APIRouter(tags=['acme:certificate'])
     200: {'content': {'application/pem-certificate-chain': {}}}
 })
 async def download_cert(
-    response: Response, serial_number: constr(regex='^[0-9A-F]+$'),
+    response: Response, serial_number: constr(pattern='^[0-9A-F]+$'),
     data: Annotated[RequestData, Depends(SignedRequest())],
-    accept: str = Header(default='*/*', regex=r'(application/pem\-certificate\-chain|\*/\*)', description='Certificates are only supported as "application/pem-certificate-chain"')
+    accept: str = Header(default='*/*', pattern=r'(application/pem\-certificate\-chain|\*/\*)',
+                         description='Certificates are only supported as "application/pem-certificate-chain"')
 ):
     async with db.transaction(readonly=True) as sql:
         pem_chain = await sql.value("""
