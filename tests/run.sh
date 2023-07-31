@@ -156,10 +156,10 @@ docker run -it --rm --name test_uacme2 --net test_net -v "$PWD/uacmedata:/uacme"
      bash -c "nginx -g 'daemon on;' && uacme -vvv -c /uacme -h /usr/share/uacme/uacme.sh \
      --acme-url http://acme.example.org:8080/acme/directory issue host30.example.org"
 
-echo "uacme 3"
+echo "uacme 3 (missing email addr on account registration)"
 docker run -it --rm --name test_uacme1 --net test_net \
      uacme uacme -v -y -c /tmp \
-     --acme-url http://acme.example.org:8080/acme/directory new || true
+     --acme-url http://acme.example.org:8080/acme/directory new 2>&1 | grep urn:ietf:params:acme:error:malformed
 
 
 

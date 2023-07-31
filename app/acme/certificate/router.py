@@ -40,7 +40,7 @@ async def download_cert(
     return Response(content=pem_chain, headers=response.headers, media_type='application/pem-certificate-chain')
 
 
-@api.post('/revoke-cert')
+@api.post('/revoke-cert', response_class=Response)
 async def revoke_cert(data: Annotated[RequestData[RevokeCertPayload], Depends(SignedRequest(RevokeCertPayload, allow_new_account=True))]):
     """
     https://www.rfc-editor.org/rfc/rfc8555#section-7.6
