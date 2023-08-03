@@ -2,6 +2,7 @@ certbot/
 traefikdata/
 caddydata/
 uacmedata/
+acmeshdata/
 
 ca.key
 ca.pem

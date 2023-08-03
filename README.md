@@ -9,6 +9,8 @@
 * Notification **Mails** (account created, certificate will expire soon, certificate is expired) with customizable templates
 * **Web UI** (certificate log) with customizable templates
 
+Tested with [Certbot](https://certbot.eff.org/), [Traefik](https://traefik.io/traefik/), [Caddy](https://caddyserver.com/), [uacme](https://github.com/ndilieto/uacme), [acme.sh](https://github.com/acmesh-official/acme.sh).
+
 # Setup
 
 ## 1. Generate a CA root certificate (or use an existing cert)
@@ -183,11 +185,3 @@ flowchart LR
     authorizations -->|1:1| challenges
     orders -->|1:0..1| certificates
 ```
-
-## Workflow
-
-TODO
-
-## Dev Setup
-
-TODO

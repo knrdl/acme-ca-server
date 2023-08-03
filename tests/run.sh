@@ -161,6 +161,20 @@ docker run -it --rm --name test_uacme1 --net test_net \
      uacme uacme -v -y -c /tmp \
      --acme-url http://acme.example.org:8080/acme/directory new 2>&1 | grep urn:ietf:params:acme:error:malformed
 
+# acme.sh
+
+rm -rf acmeshdata
+mkdir acmeshdata
+
+echo "acme.sh 1"
+docker run -it --rm --name test_acmesh1 --net test_net -v "$PWD/acmeshdata:/acme.sh" --network-alias host40.example.org \
+     docker.io/neilpang/acme.sh --issue -d host40.example.org --standalone \
+     --accountemail acmesh@example.org --server http://acme.example.org:8080/acme/directory
+
+echo "acme.sh 2"
+docker run -it --rm --name test_acmesh2 --net test_net -v "$PWD/acmeshdata:/acme.sh" --network-alias host40.example.org \
+     docker.io/neilpang/acme.sh --revoke -d host40.example.org --server http://acme.example.org:8080/acme/directory
+
 
 
 docker kill test_server
