@@ -2,7 +2,7 @@ aiosmtplib==3.0.1
 asyncpg==0.29.0
 cryptography==41.0.5
 fastapi==0.104.1
-httpx==0.25.1
+httpx==0.25.2
 jinja2==3.1.2
 jwcrypto==1.5.0
 pydantic[email]==2.5.1
