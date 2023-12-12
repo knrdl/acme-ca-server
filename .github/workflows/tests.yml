@@ -21,4 +21,4 @@ jobs:
       - name: Run test suite
         run: |
           cd tests
-          ./run.sh
+          sudo ./run.sh
