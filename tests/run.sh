@@ -143,7 +143,7 @@ docker kill test_caddy
 rm -rf uacmedata
 mkdir uacmedata
 
-docker build --pull -t uacme -f Dockerfile.uacme
+docker build --pull -t uacme -f Dockerfile.uacme .
 
 echo "uacme 1"
 docker run --rm --name test_uacme1 --net test_net -v "$PWD/uacmedata:/uacme" \
