@@ -49,56 +49,56 @@ rm -rf certbot
 mkdir certbot
 
 echo "Certbot 1a"
-docker run -it --rm --pull always --name test_certbot1a --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --pull always --name test_certbot1a --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot certonly \
      --server http://acme.example.org:8080/acme/directory --standalone --no-eff-email \
      --email certbot@example.org -vvv \
      --domains host1.example.org --domains host2.example.org
 
 echo "Certbot 1b"
-docker run -it --rm --name test_certbot1b --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --name test_certbot1b --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot update_account --no-eff-email -m certbot2@example.org  \
      --server http://acme.example.org:8080/acme/directory
 
 echo "Certbot 2"
-docker run -it --rm --name test_certbot2 --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --name test_certbot2 --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot certonly \
      --server http://acme.example.org:8080/acme/directory --standalone --no-eff-email --force-renewal \
      --email certbot@example.org -vvv \
      --domains host1.example.org --domains host2.example.org --domains host3.example.org
 
 echo "Certbot 3a"
-docker run -it --rm --name test_certbot3a --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --name test_certbot3a --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot certificates \
      --server http://acme.example.org:8080/acme/directory
 
 echo "Certbot 3b"
-docker run -it --rm --name test_certbot3b --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --name test_certbot3b --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot reconfigure \
      --server http://acme.example.org:8080/acme/directory --cert-name host1.example.org  -vvv
 
 echo "Certbot 3c"
-docker run -it --rm --name test_certbot3c --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --name test_certbot3c --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot revoke \
      --server http://acme.example.org:8080/acme/directory --cert-name host1.example.org -vvv --non-interactive
 
 echo "Certbot 3d"
-docker run -it --rm --name test_certbot3d --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --name test_certbot3d --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot certificates \
      --server http://acme.example.org:8080/acme/directory
 
 echo "Certbot 4a"
-docker run -it --rm --name test_certbot4a --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --name test_certbot4a --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot show_account \
      --server http://acme.example.org:8080/acme/directory
 
 echo "Certbot 4b"
-docker run -it --rm --name test_certbot4b --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --name test_certbot4b --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot unregister \
      --server http://acme.example.org:8080/acme/directory --non-interactive
 
 echo "Certbot 4c"
-docker run -it --rm --name test_certbot4c --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
+docker run --rm --name test_certbot4c --net test_net -v "$PWD/certbot:/etc/letsencrypt" \
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot show_account \
      --server http://acme.example.org:8080/acme/directory || true
 
@@ -146,18 +146,18 @@ mkdir uacmedata
 docker build --pull -t uacme -f Dockerfile.uacme
 
 echo "uacme 1"
-docker run -it --rm --name test_uacme1 --net test_net -v "$PWD/uacmedata:/uacme" \
+docker run --rm --name test_uacme1 --net test_net -v "$PWD/uacmedata:/uacme" \
      uacme uacme -v -c /uacme \
      --acme-url http://acme.example.org:8080/acme/directory new uacme@example.org
 
 echo "uacme 2"
-docker run -it --rm --name test_uacme2 --net test_net -v "$PWD/uacmedata:/uacme" \
+docker run --rm --name test_uacme2 --net test_net -v "$PWD/uacmedata:/uacme" \
      --network-alias host30.example.org -e UACME_CHALLENGE_PATH=/var/www/html/.well-known/acme-challenge uacme \
      bash -c "nginx -g 'daemon on;' && uacme -vvv -c /uacme -h /usr/share/uacme/uacme.sh \
      --acme-url http://acme.example.org:8080/acme/directory issue host30.example.org"
 
 echo "uacme 3 (missing email addr on account registration)"
-docker run -it --rm --name test_uacme1 --net test_net \
+docker run --rm --name test_uacme1 --net test_net \
      uacme uacme -v -y -c /tmp \
      --acme-url http://acme.example.org:8080/acme/directory new 2>&1 | grep urn:ietf:params:acme:error:malformed
 
@@ -167,12 +167,12 @@ rm -rf acmeshdata
 mkdir acmeshdata
 
 echo "acme.sh 1"
-docker run -it --rm --name test_acmesh1 --net test_net -v "$PWD/acmeshdata:/acme.sh" --network-alias host40.example.org \
+docker run --rm --name test_acmesh1 --net test_net -v "$PWD/acmeshdata:/acme.sh" --network-alias host40.example.org \
      docker.io/neilpang/acme.sh --issue -d host40.example.org --standalone \
      --accountemail acmesh@example.org --server http://acme.example.org:8080/acme/directory
 
 echo "acme.sh 2"
-docker run -it --rm --name test_acmesh2 --net test_net -v "$PWD/acmeshdata:/acme.sh" --network-alias host40.example.org \
+docker run --rm --name test_acmesh2 --net test_net -v "$PWD/acmeshdata:/acme.sh" --network-alias host40.example.org \
      docker.io/neilpang/acme.sh --revoke -d host40.example.org --server http://acme.example.org:8080/acme/directory
 
 

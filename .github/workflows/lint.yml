@@ -1,4 +1,4 @@
-name: Code Format
+name: Code Lint
 
 on:
   push:
