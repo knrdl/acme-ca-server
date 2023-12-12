@@ -181,8 +181,8 @@ docker kill test_server
 docker logs test_server
 docker rm test_server
 
-docker exec -it test_db psql -U postgres -c "update certificates set not_valid_before=now() - interval '50 day', not_valid_after=now() - interval '10 days' where order_id = (select id from orders where status = 'valid' order by id asc limit 1);"
-docker exec -it test_db psql -U postgres -c "update certificates set not_valid_before=now() - interval '50 day', not_valid_after=now() + interval '10 days' where order_id = (select id from orders where status = 'valid' order by id desc limit 1);"
+docker exec test_db psql -U postgres -c "update certificates set not_valid_before=now() - interval '50 day', not_valid_after=now() - interval '10 days' where order_id = (select id from orders where status = 'valid' order by id asc limit 1);"
+docker exec test_db psql -U postgres -c "update certificates set not_valid_before=now() - interval '50 day', not_valid_after=now() + interval '10 days' where order_id = (select id from orders where status = 'valid' order by id desc limit 1);"
 
 run_server
 
