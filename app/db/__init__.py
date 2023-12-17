@@ -11,12 +11,12 @@ _pool: asyncpg.pool.Pool = None
 
 
 async def connect():
-    global _pool
+    global _pool  # pylint: disable=global-statement
     _pool = await asyncpg.create_pool(min_size=0, max_size=20, dsn=str(settings.db_dsn), init=init_connection, server_settings={'application_name': settings.web.app_title})
 
 
 async def disconnect():
-    global _pool
+    global _pool  # pylint: disable=global-variable-not-assigned
     await _pool.close()
 
 
@@ -31,15 +31,17 @@ def _encode_json(payload: Any) -> str:
         return json.dumps(payload)
 
 
-class transaction:
+class transaction:  # pylint: disable=invalid-name
     readonly = False
 
     def __init__(self, readonly=False) -> None:
         self.readonly = readonly
+        self.conn: asyncpg.Connection = None
+        self.trans: asyncpg.connection.transaction = None
 
     async def __aenter__(self, *args, **kwargs):
-        self.conn: asyncpg.Connection = await _pool.acquire()
-        self.trans: asyncpg.connection.transaction = self.conn.transaction(readonly=self.readonly)
+        self.conn = await _pool.acquire()
+        self.trans = self.conn.transaction(readonly=self.readonly)
         await self.trans.start()
         return self
 
@@ -66,7 +68,7 @@ class transaction:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            logger.debug('Transaction rollback. Reason: %s %s', exc_type, exc_val, exc_tb)
+            logger.debug('Transaction rollback. Reason: %s %s %s', exc_type, exc_val, exc_tb)
             await self.trans.rollback()
         else:
             await self.trans.commit()

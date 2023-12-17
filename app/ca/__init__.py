@@ -14,7 +14,7 @@ from logger import logger
 router = APIRouter(prefix='/ca', tags=['ca'])
 
 if settings.ca.enabled:
-    from cryptography.fernet import Fernet
+    from cryptography.fernet import Fernet  # pylint: disable=ungrouped-imports
 
     from . import cronjob
     from .service import build_crl_sync
@@ -42,7 +42,7 @@ if settings.ca.enabled:
 
             async with db.transaction(readonly=True) as sql:
                 revocations = [record async for record in sql('select serial_number, revoked_at from certificates where revoked_at is not null')]
-            crl, crl_pem = await asyncio.to_thread(build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations)
+            _, crl_pem = await asyncio.to_thread(build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations)
 
             async with db.transaction() as sql:
                 await sql.exec('update cas set active = false')
@@ -56,7 +56,7 @@ if settings.ca.enabled:
             async with db.transaction() as sql:
                 ok = await sql.value('select count(serial_number)=1 from cas where active=true')
             if not ok:
-                raise Exception('internal ca is enabled but no CA certificate is registered and active. Please import one first.')
+                raise ValueError('internal ca is enabled but no CA certificate is registered and active. Please import one first.')
 
         await cronjob.start()
 else:

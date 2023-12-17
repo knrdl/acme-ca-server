@@ -21,7 +21,7 @@ from config import settings
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     await db.connect()
     await db.migrations.run()
     await ca.init()
@@ -63,11 +63,11 @@ async def acme_exception_handler(request: Request, exc: Exception):
         if isinstance(exc, ACMEException):
             return await exc.as_response()
         elif isinstance(exc, ValidationError):
-            return await ACMEException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, type='malformed', detail=exc.json()).as_response()
+            return await ACMEException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, exctype='malformed', detail=exc.json()).as_response()
         elif isinstance(exc, HTTPException):
-            return await ACMEException(status_code=exc.status_code, type='serverInternal', detail=str(exc.detail)).as_response()
+            return await ACMEException(status_code=exc.status_code, exctype='serverInternal', detail=str(exc.detail)).as_response()
         else:
-            return await ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, type='serverInternal', detail=str(exc)).as_response()
+            return await ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, exctype='serverInternal', detail=str(exc)).as_response()
     else:
         if isinstance(exc, HTTPException):
             return await http_exception_handler(request, exc)

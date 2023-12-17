@@ -43,7 +43,7 @@ async def send_mail(receiver: str, template: Templates, subject_vars: dict = Non
         ) as client:
             await client.send_message(message)
     else:
-        logger.debug('sending mails is disabled, not sending: ' + str(message))
+        logger.debug('sending mails is disabled, not sending: %s', message)
 
 
 async def send_new_account_info_mail(receiver: str):

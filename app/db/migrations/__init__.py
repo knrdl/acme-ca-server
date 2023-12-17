@@ -23,12 +23,12 @@ async def run():
             next_file = Path('db/migrations') / f'{next_level:0>3}.sql'
             if not next_file.is_file():
                 break
-            logger.info(f'Running migration: {next_file.name}')
-            with open(next_file) as f:
+            logger.info('Running migration: %s', next_file.name)
+            with open(next_file, encoding='utf-8') as f:
                 await sql.exec(f.read())
             await sql.exec('update migrations set migration=$1', next_level)
             dirty = True
         if dirty:
-            logger.info(f'Finished database migrations (current level: {cur_file.name})')
+            logger.info('Finished database migrations (current level: %s)', cur_file.name)
         else:
-            logger.info(f'Database migrations are up to date (current level: {cur_file.name})')
+            logger.info('Database migrations are up to date (current level: %s)', cur_file.name)

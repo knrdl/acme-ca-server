@@ -41,14 +41,14 @@ class ACMEException(Exception):
     new_nonce: str | None
 
     def __init__(
-        self, *, type: AcmeExceptionTypes, detail: str = '',  # noqa: A002 (allow shadowing builtin "type")
+        self, *, exctype: AcmeExceptionTypes, detail: str = '',
         status_code: int = status.HTTP_400_BAD_REQUEST, new_nonce: str | None = None
     ) -> None:
         self.headers = {'Link': f'<{settings.external_url}acme/directory>;rel="index"'}
         # when a new nonce is already created it should also be used in the exception case
         # however if there is none yet, a new one gets generated in as_response()
         self.new_nonce = new_nonce
-        self.exc_type = type
+        self.exc_type = exctype
         self.detail = detail
         self.status_code = status_code
 
@@ -58,7 +58,7 @@ class ACMEException(Exception):
 
     async def as_response(self):
         if not self.new_nonce:
-            from .nonce.service import generate as generate_nonce  # import here to prevent circular import
+            from .nonce.service import generate as generate_nonce  # import here to prevent circular import  # pylint: disable=import-outside-toplevel
             self.new_nonce = await generate_nonce()
         return JSONResponse(
             status_code=self.status_code,

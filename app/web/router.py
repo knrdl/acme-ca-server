@@ -53,7 +53,7 @@ if settings.web.enable_public_log:
         return Response(content=pem_chain, media_type='application/pem-certificate-chain')
 
     @api.get('/domains', response_class=HTMLResponse)
-    async def domain_log(domainfilter: str = '', status: Literal['all', 'valid', 'invalid'] = 'all'):
+    async def domain_log(domainfilter: str = '', domainstatus: Literal['all', 'valid', 'invalid'] = 'all'):
         async with db.transaction(readonly=True) as sql:
             domains = [record async for record in sql("""
                 with data as (
@@ -71,8 +71,8 @@ if settings.web.enable_public_log:
                 select * from data
                 where ($2 = 'all' or ($2 = 'valid' and is_valid) or ($2 = 'invalid' and not is_valid))
                 order by domain_name
-            """, domainfilter.replace('*', '%'), status)]
-        return await template_engine.get_template('domain-log.html').render_async(**default_params, domains=domains, status=status, domainfilter=domainfilter)
+            """, domainfilter.replace('*', '%'), domainstatus)]
+        return await template_engine.get_template('domain-log.html').render_async(**default_params, domains=domains, domainstatus=domainstatus, domainfilter=domainfilter)
 else:
     @api.get('/certificates')
     async def certificate_log():

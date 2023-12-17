@@ -5,7 +5,7 @@ import jwcrypto.jwk
 import jwcrypto.jws
 from fastapi import Body, Header, Request, Response, status
 from jwcrypto.common import base64url_decode
-from pydantic import AnyHttpUrl, BaseModel, constr, ConfigDict, model_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, constr, model_validator
 
 import db
 from config import settings
@@ -50,13 +50,13 @@ class Protected(BaseModel):
     @model_validator(mode='after')
     def valid_check(self) -> 'Protected':
         if not self.jwk and not self.kid:
-            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='malformed', detail='either jwk or kid must be set')
+            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail='either jwk or kid must be set')
         if self.jwk and self.kid:
-            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='malformed', detail='the fields jwk and kid are mutually exclusive')
+            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail='the fields jwk and kid are mutually exclusive')
         return self
 
 
-class SignedRequest:
+class SignedRequest:  # pylint: disable=too-few-public-methods
     def __init__(self, payload_model: BaseModel = None, *,
                  allow_new_account: bool = False, allow_blocked_account: bool = False):
         self.allow_new_account = allow_new_account
@@ -71,7 +71,7 @@ class SignedRequest:
             return url.removeprefix('http://')
         return url
 
-    async def __call__(
+    async def __call__(  # pylint: disable=too-many-arguments,too-many-locals
         self, request: Request, response: Response,
         content_type: str = Header(..., pattern=r'^application/jose\+json$', description='Content Type must be "application/jose+json"'),
         protected: constr(min_length=1) = Body(...), signature: constr(min_length=1) = Body(...), payload: constr(min_length=0) = Body(...)
@@ -80,12 +80,12 @@ class SignedRequest:
 
         # Scheme might be different because of reverse proxy forwarding
         if self._schemeless_url(str(protected_data.url)) != self._schemeless_url(str(request.url)):
-            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='unauthorized', detail='Requested URL does not match with actually called URL')
+            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='unauthorized', detail='Requested URL does not match with actually called URL')
 
         if protected_data.kid:  # account exists
             base_url = f'{settings.external_url}acme/accounts/'
             if not protected_data.kid.startswith(base_url):
-                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='malformed', detail=f'JWS invalid: kid must start with: "{base_url}"')
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'JWS invalid: kid must start with: "{base_url}"')
 
             account_id = protected_data.kid.split('/')[-1]
             if account_id:
@@ -97,7 +97,7 @@ class SignedRequest:
             else:
                 key_data = None
             if not key_data:
-                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='accountDoesNotExist', detail='unknown, deactived or revoked account')
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='accountDoesNotExist', detail='unknown, deactived or revoked account')
             key = jwcrypto.jwk.JWK()
             key.import_key(**key_data)
         elif self.allow_new_account:
@@ -105,16 +105,16 @@ class SignedRequest:
             key = jwcrypto.jwk.JWK()
             key.import_key(**protected_data.jwk.dict())
         else:
-            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='accountDoesNotExist', detail='unknown account. not accepting new accounts')
+            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='accountDoesNotExist', detail='unknown account. not accepting new accounts')
 
         jws = jwcrypto.jws.JWS()
         if 'none' in jws.allowed_algs:
-            raise Exception('"none" is a forbidden JWS algorithm!')
+            raise ValueError('"none" is a forbidden JWS algorithm!')
         try:
             # signature is checked here
             jws.deserialize(await request.body(), key)
-        except jwcrypto.jws.InvalidJWSSignature:
-            raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, type='unauthorized', detail='signature check failed')
+        except jwcrypto.jws.InvalidJWSSignature as exc:
+            raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, exctype='unauthorized', detail='signature check failed') from exc
 
         if self.payload_model and payload:
             payload_data = self.payload_model(**json.loads(base64url_decode(payload)))

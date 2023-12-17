@@ -23,13 +23,18 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
                 if res.status_code == 200 and res.text.rstrip() == f'{token}.{jwk.thumbprint()}':
                     err = False
                 else:
-                    err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='incorrectResponse', detail='presented token does not match challenge', new_nonce=new_nonce)
+                    err = ACMEException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        exctype='incorrectResponse',
+                        detail='presented token does not match challenge',
+                        new_nonce=new_nonce
+                    )
         except httpx.ConnectTimeout:
-            err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='connection', detail='timeout', new_nonce=new_nonce)
+            err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='connection', detail='timeout', new_nonce=new_nonce)
         except httpx.ConnectError:
-            err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='dns', detail='could not resolve address', new_nonce=new_nonce)
+            err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='dns', detail='could not resolve address', new_nonce=new_nonce)
         except Exception:
-            err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, type='serverInternal', detail='could not validate challenge', new_nonce=new_nonce)
+            err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='serverInternal', detail='could not validate challenge', new_nonce=new_nonce)
         if err is False:
             return  # check successful
         await asyncio.sleep(3)

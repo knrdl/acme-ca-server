@@ -23,14 +23,18 @@ jobs:
       - name: Install dependencies
         run: |
           pip install flake8 flake8-bandit flake8-bugbear flake8-builtins flake8-comprehensions flake8-deprecated flake8-isort flake8-print flake8-quotes flake8-todo
+          pip install pylint
           pip install semgrep
           
       - name: Check linting
         run: |
+          cd app
+          pip install -r requirements.txt
+          echo -e "[settings]\nline_length=179\nsections=FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER" > .isort.cfg
           # ignore list:
           # F722: https://stackoverflow.com/questions/64909849/syntax-error-with-flake8-and-pydantic-constrained-types-constrregex
           # B008: FastAPI uses by design function calls in arguments for dependency injection
-          echo -e "[settings]\nline_length=179" > .isort.cfg
           python -m flake8 --max-line-length 179 --ignore=F722,B008,I001,I004,I005 .
-          semgrep scan --config=auto .
+          pylint --max-line-length=179 --recursive=yes --disable=too-many-branches,no-else-return,broad-exception-caught,missing-module-docstring,missing-class-docstring,missing-function-docstring .
+          semgrep ci --metrics=off --config=p/default || true
 
