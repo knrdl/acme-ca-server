@@ -9,7 +9,16 @@ on:
     branches: [ main ]
 
 jobs:
-  docker:
+  hadolint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          
+  python:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
