@@ -3,7 +3,7 @@
 # set env var CA_ENABLED=False when providing a custom ca implementation
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 from cryptography import x509
 from cryptography.fernet import Fernet
@@ -65,8 +65,8 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate,
         issuer_name=ca_cert.subject,
         subject_name=x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, subject_domain)]),
         serial_number=x509.random_serial_number(),
-        not_valid_before=datetime.utcnow(),
-        not_valid_after=datetime.utcnow() + settings.ca.cert_lifetime,
+        not_valid_before=datetime.now(timezone.utc),
+        not_valid_after=datetime.now(timezone.utc) + settings.ca.cert_lifetime,
         public_key=csr.public_key()
     ) \
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True) \

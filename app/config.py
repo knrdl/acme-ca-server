@@ -1,4 +1,5 @@
 from datetime import timedelta
+import sys
 from typing import Any, Literal, Optional, Pattern
 
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, model_validator
@@ -28,8 +29,8 @@ class CaSettings(BaseSettings):
         if self.enabled:
             if not self.encryption_key:
                 from cryptography.fernet import Fernet  # pylint: disable=import-outside-toplevel
-                print('Env Var ca_encryption_key is missing, use this freshly generated key: ' + Fernet.generate_key().decode())
-                exit(1)
+                logger.fatal('Env Var ca_encryption_key is missing, use this freshly generated key: %s', Fernet.generate_key().decode())
+                sys.exit(1)
             if self.cert_lifetime.days < 1:
                 raise ValueError('Cert lifetime for internal CA must be at least one day, not: ' + str(self.cert_lifetime))
             if self.crl_lifetime.days < 1:
