@@ -75,7 +75,7 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate,
         ], relative_name=None, reasons=None, crl_issuer=None)]), critical=False) \
         .add_extension(x509.SubjectAlternativeName(general_names=[x509.DNSName(domain) for domain in san_domains]), critical=False) \
         .add_extension(x509.KeyUsage(
-            digital_signature=True, content_commitment=False, key_encipherment=False, data_encipherment=False,
+            digital_signature=True, content_commitment=False, key_encipherment=True, data_encipherment=False,
             key_agreement=False, key_cert_sign=False, crl_sign=False, encipher_only=False, decipher_only=False), critical=True) \
         .add_extension(x509.ExtendedKeyUsage(usages=[
             x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH, x509.oid.ExtendedKeyUsageOID.SERVER_AUTH
