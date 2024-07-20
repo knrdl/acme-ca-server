@@ -169,7 +169,7 @@ async def finalize_order(order_id: str, data: Annotated[RequestData[FinalizeOrde
             not_valid_before, not_valid_after = await sql.record("""
                 insert into certificates (serial_number, csr_pem, chain_pem, order_id, not_valid_before, not_valid_after)
                 values ($1, $2, $3, $4, $5, $6) returning not_valid_before, not_valid_after
-            """, cert_sn, csr_pem, signed_cert.cert_chain_pem, order_id, signed_cert.cert.not_valid_before, signed_cert.cert.not_valid_after)
+            """, cert_sn, csr_pem, signed_cert.cert_chain_pem, order_id, signed_cert.cert.not_valid_before_utc, signed_cert.cert.not_valid_after_utc)
             order_status = await sql.value("""
                 update orders set status='valid' where id = $1 and status='processing' returning status
             """, order_id)
