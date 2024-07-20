@@ -72,9 +72,16 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate,
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True) \
         .add_extension(x509.CRLDistributionPoints(distribution_points=[x509.DistributionPoint(full_name=[
             x509.UniformResourceIdentifier(str(settings.external_url).removesuffix('/') + f'/ca/{ca_id}/crl')
-        ], relative_name=None, reasons=None, crl_issuer=None)]), critical=True) \
-        .add_extension(x509.SubjectAlternativeName(general_names=[x509.DNSName(domain) for domain in san_domains]), critical=False)
-    cert = cert_builder.sign(private_key=ca_key, algorithm=hashes.SHA512(),)
+        ], relative_name=None, reasons=None, crl_issuer=None)]), critical=False) \
+        .add_extension(x509.SubjectAlternativeName(general_names=[x509.DNSName(domain) for domain in san_domains]), critical=False) \
+        .add_extension(x509.KeyUsage(
+            digital_signature=True, content_commitment=False, key_encipherment=False, data_encipherment=False,
+            key_agreement=False, key_cert_sign=False, crl_sign=False, encipher_only=False, decipher_only=False), critical=True) \
+        .add_extension(x509.ExtendedKeyUsage(usages=[
+            x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH, x509.oid.ExtendedKeyUsageOID.SERVER_AUTH
+        ]), critical=False)
+
+    cert = cert_builder.sign(private_key=ca_key, algorithm=hashes.SHA512())
 
     cert_pem = cert.public_bytes(serialization.Encoding.PEM)
     ca_cert_pem = ca_cert.public_bytes(serialization.Encoding.PEM)
