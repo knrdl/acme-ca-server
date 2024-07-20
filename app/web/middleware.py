@@ -6,8 +6,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):  # pylint: disable=too-few-
     """Add security headers to all responses."""
 
     def __init__(self, app: FastAPI, *,
-                 content_security_policy: dict[str, str] = None,
-                 permissions_policy: dict[str, str] = None
+                 content_security_policy: dict[str, str] | None = None,
+                 permissions_policy: dict[str, str] | None = None
                  ) -> None:
         super().__init__(app)
         self.csp = content_security_policy
