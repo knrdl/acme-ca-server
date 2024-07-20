@@ -17,7 +17,7 @@ Tested with [Certbot](https://certbot.eff.org/), [Traefik](https://traefik.io/tr
 
 ```
 $ openssl genrsa -out ca.key 4096
-$ openssl req -new -x509 -nodes -days 3650 -subj "/C=TestCA/O=Demo" -key ca.key -out ca.pem
+$ openssl req -new -x509 -nodes -days 3650 -subj "/C=DE/O=Demo" -key ca.key -out ca.pem
 ```
 
 ## 2. Deploy the container
