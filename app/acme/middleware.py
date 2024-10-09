@@ -71,11 +71,10 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
             return url.removeprefix('http://')
         return url
 
-    async def __call__(
+    async def __call__(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self, request: Request, response: Response,
         content_type: str = Header(..., pattern=r'^application/jose\+json$', description='Content Type must be "application/jose+json"'),
         protected: constr(min_length=1) = Body(...), signature: constr(min_length=1) = Body(...), payload: constr(min_length=0) = Body(...)
-        # pylint: disable=too-many-arguments,too-many-locals
     ):
         protected_data = Protected(**json.loads(base64url_decode(protected)))
 
