@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Header, Response, status
 from jwcrypto.common import base64url_decode
 from pydantic import BaseModel, constr
 
-import db
-from ca import service as ca_service
+from ... import db
+from ...ca import service as ca_service
 
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest

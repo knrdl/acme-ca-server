@@ -5,8 +5,8 @@ from typing import Any, Literal, Optional, Pattern
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from logger import logger
-
+# from logger import logger
+from .logger import logger
 
 class WebSettings(BaseSettings):
     enabled: bool = True

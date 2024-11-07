@@ -11,13 +11,17 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-import acme
-import ca
-import db
-import db.migrations
-import web
-from acme.exceptions import ACMEException
-from config import settings
+# import acme
+from . import acme
+from . import ca
+from . import db
+from .db import migrations
+from . import web
+# import ca
+# import db
+# import db.migrations
+from .acme.exceptions import ACMEException
+from .config import settings
 
 
 @asynccontextmanager

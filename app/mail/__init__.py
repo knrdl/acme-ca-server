@@ -5,8 +5,8 @@ from typing import Literal
 from aiosmtplib import SMTP
 from jinja2 import Environment, FileSystemLoader
 
-from config import settings
-from logger import logger
+from ..config import settings
+from ..logger import logger
 
 template_engine = Environment(loader=FileSystemLoader('mail/templates'), enable_async=True, autoescape=True)
 default_params = {

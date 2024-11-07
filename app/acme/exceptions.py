@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import status
 from fastapi.responses import JSONResponse
 
-from config import settings
+from ..config import settings
 
 AcmeExceptionTypes = Literal[
     'accountDoesNotExist',

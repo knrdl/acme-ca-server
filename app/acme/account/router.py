@@ -4,10 +4,12 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel, conlist, constr
 
-import db
-import mail
-from config import settings
-from logger import logger
+from ... import db
+
+from ... import mail
+from ... import mail
+from ...config import settings
+from ...logger import logger
 
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest

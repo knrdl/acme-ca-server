@@ -7,8 +7,9 @@ from fastapi import Body, Header, Request, Response, status
 from jwcrypto.common import base64url_decode
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, constr, model_validator
 
-import db
-from config import settings
+# import db
+from .. import db
+from ..config import settings
 
 from .exceptions import ACMEException
 from .nonce import service as nonce_service

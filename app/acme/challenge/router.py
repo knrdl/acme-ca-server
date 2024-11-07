@@ -2,9 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 
-import db
-from config import settings
-from logger import logger
+from ... import db
+from ...config import settings
+from ...logger import logger
 
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest
@@ -15,6 +15,11 @@ api = APIRouter(tags=['acme:challenge'])
 
 @api.post('/challenges/{chal_id}')
 async def verify_challenge(response: Response, chal_id: str, data: Annotated[RequestData, Depends(SignedRequest())]):
+    # TODO before this starts, the ACME-server has to send 4 challenges with 4 unique tokens.
+    # These tokens then need to be presented in a JWT.
+    
+    
+    
     must_solve_challenge = False
     async with db.transaction() as sql:
         record = await sql.record("""

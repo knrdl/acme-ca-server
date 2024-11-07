@@ -7,10 +7,10 @@ from fastapi import APIRouter, Depends, Response, status
 from jwcrypto.common import base64url_decode
 from pydantic import BaseModel, conlist, constr
 
-import db
-from ca import service as ca_service
-from config import settings
-from logger import logger
+from ... import db
+from ...ca import service as ca_service
+from ...config import settings
+from ...logger import logger
 
 from ..certificate.service import SerialNumberConverter, check_csr
 from ..exceptions import ACMEException
@@ -53,6 +53,8 @@ api = APIRouter(tags=['acme:order'])
 
 @api.post('/new-order', status_code=201)
 async def submit_order(response: Response, data: Annotated[RequestData[NewOrderPayload], Depends(SignedRequest(NewOrderPayload))]):
+    # In here, challenges are getting created with random tokens
+    
     if data.payload.notBefore is not None or data.payload.notAfter is not None:
         raise ACMEException(exctype='malformed',
                             detail='Parameter notBefore and notAfter may not be specified as the constraints might cannot be enforced.',
