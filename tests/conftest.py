@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.constants import PROJECT_ROOT
+from jwcrypto import jwk
 
 
 @pytest.fixture
@@ -29,3 +30,11 @@ def fastapi_app() -> FastAPI:
 def fastapi_testclient(fastapi_app: FastAPI) -> TestClient:
     with TestClient(fastapi_app) as ac:
         yield ac
+
+
+@pytest.fixture(scope="session")
+def jwk_key() -> jwk.JWK:
+    # We only need one jwk per session
+    jwk_key = jwk.JWK.generate(kty="EC", crv="P-256")
+
+    return jwk_key

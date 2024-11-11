@@ -1,10 +1,8 @@
 import json
 from fastapi.testclient import TestClient
 
-
 from jwcrypto.common import json_encode
 
-import base64
 from jwcrypto import jwk, jws
 
 
@@ -18,9 +16,7 @@ def create_nonce(testclient: TestClient):
     return nonce
 
 
-def create_account_response(testclient: TestClient, nonce: str):
-    # TODO replace this with self created public key
-    jwk_key = jwk.JWK.generate(kty="EC", crv="P-256")
+def create_account_response(testclient: TestClient, nonce: str, jwk_key: jwk.JWK):
     jwk_export = jwk_key.export(private_key=False, as_dict=True)
 
     protected = {
@@ -52,43 +48,40 @@ def create_account_response(testclient: TestClient, nonce: str):
     return response
 
 
-def test_create_new_account(fastapi_testclient: TestClient):
+def test_create_new_account(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
     # Before order generation, create a nonce
     nonce = create_nonce(fastapi_testclient)
-    response = create_account_response(fastapi_testclient, nonce)
+    response = create_account_response(fastapi_testclient, nonce, jwk_key)
 
-    # TODO retrieve account id
     assert response.is_success
 
 
-def test_acme_order(fastapi_testclient: TestClient):
-    account_id = 1
+def test_acme_order(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
+    nonce = create_nonce(fastapi_testclient)
+
+    account_response = create_account_response(fastapi_testclient, nonce, jwk_key)
+    account_location_header = account_response.headers.get("location")
 
     protected = {
         "alg": "ES256",
-        "nonce": "testnonce",
-        # This must be the same as the external_url env variable
+        "nonce": nonce,
         "url": "http://testserver/acme/new-order",
         # should be an account url
-        "kid": f"http://testserver/acme/accounts/{account_id}",
+        "kid": account_location_header,
     }
-    base64_protected_json = base64.urlsafe_b64encode(
-        json.dumps(protected).encode()
-    ).decode()
 
-    request_data = {
-        "payload": json.dumps({"notBefore": None, "notAfter": None}),
-        "key": 1,
-        "account_id": None,
-        "new_nonce": "123",
-        "signature": "123",
-        "protected": base64_protected_json,
-    }
+    payload = {"notBefore": None, "notAfter": None}
+    payload_encoded = json_encode(payload).encode("utf-8")
+
+    jws_object = jws.JWS(payload_encoded)
+    jws_object.add_signature(jwk_key, protected=json_encode(protected), alg="ES256")
+
+    jws_serialized = json.loads(jws_object.serialize(compact=False))
+
     request_content_type = "application/jose+json"
-    x = fastapi_testclient.post(
+    response = fastapi_testclient.post(
         "/acme/new-order",
-        json=request_data,
+        json=jws_serialized,
         headers={"Content-Type": request_content_type},
     )
-
-    print(x)
+    assert response.is_success
