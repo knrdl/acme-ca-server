@@ -48,21 +48,13 @@ def create_account_response(testclient: TestClient, nonce: str, jwk_key: jwk.JWK
     return response
 
 
-def test_create_new_account(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
-    # Before order generation, create a nonce
-    nonce = create_nonce(fastapi_testclient)
-    response = create_account_response(fastapi_testclient, nonce, jwk_key)
+def create_new_order_response(testclient: TestClient, jwk_key: jwk.JWK):
+    nonce = create_nonce(testclient)
 
-    assert response.is_success
-
-
-def test_acme_order(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
-    nonce = create_nonce(fastapi_testclient)
-
-    account_response = create_account_response(fastapi_testclient, nonce, jwk_key)
+    account_response = create_account_response(testclient, nonce, jwk_key)
     account_location_header = account_response.headers.get("location")
 
-    order_nonce = create_nonce(fastapi_testclient)
+    order_nonce = create_nonce(testclient)
 
     protected = {
         "alg": "ES256",
@@ -85,9 +77,21 @@ def test_acme_order(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
     jws_serialized = json.loads(jws_object.serialize(compact=False))
 
     request_content_type = "application/jose+json"
-    response = fastapi_testclient.post(
+    response = testclient.post(
         "/acme/new-order",
         json=jws_serialized,
         headers={"Content-Type": request_content_type},
     )
+    return response
+
+
+def test_create_new_account(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
+    nonce = create_nonce(fastapi_testclient)
+    response = create_account_response(fastapi_testclient, nonce, jwk_key)
+
+    assert response.is_success
+
+
+def test_acme_order(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
+    response = create_new_order_response(fastapi_testclient, jwk_key)
     assert response.is_success
