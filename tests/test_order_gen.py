@@ -62,15 +62,21 @@ def test_acme_order(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
     account_response = create_account_response(fastapi_testclient, nonce, jwk_key)
     account_location_header = account_response.headers.get("location")
 
+    order_nonce = create_nonce(fastapi_testclient)
+
     protected = {
         "alg": "ES256",
-        "nonce": nonce,
+        "nonce": order_nonce,
         "url": "http://testserver/acme/new-order",
         # should be an account url
         "kid": account_location_header,
     }
 
-    payload = {"notBefore": None, "notAfter": None}
+    payload = {
+        "notBefore": None,
+        "notAfter": None,
+        "identifiers": [{"type": "dns", "value": "domain.example.com"}],
+    }
     payload_encoded = json_encode(payload).encode("utf-8")
 
     jws_object = jws.JWS(payload_encoded)
