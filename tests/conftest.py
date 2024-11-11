@@ -4,6 +4,8 @@ import os
 from fastapi.testclient import TestClient
 import pytest
 
+from app.constants import PROJECT_ROOT
+
 
 @pytest.fixture
 def fastapi_app() -> FastAPI:
@@ -16,7 +18,8 @@ def fastapi_app() -> FastAPI:
     os.environ["db_dsn"] = (
         "postgresql://postgres:postgres@localhost/acme_ca_server_test"
     )
-
+    os.environ["CA_CERT_PATH"] = str(PROJECT_ROOT / "ca.pem")
+    os.environ["CA_PRIVATE_KEY_PATH"] = str(PROJECT_ROOT / "ca.key")
     from app.main import app
 
     return app
@@ -24,4 +27,5 @@ def fastapi_app() -> FastAPI:
 
 @pytest.fixture
 def fastapi_testclient(fastapi_app: FastAPI) -> TestClient:
-    return TestClient(fastapi_app)
+    with TestClient(fastapi_app) as ac:
+        yield ac

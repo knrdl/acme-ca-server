@@ -7,12 +7,20 @@ from pydantic import BaseModel
 from ..config import settings
 from ..logger import logger
 
+from . import migrations
+
 _pool: asyncpg.pool.Pool = None
 
 
 async def connect():
     global _pool  # pylint: disable=global-statement
-    _pool = await asyncpg.create_pool(min_size=0, max_size=20, dsn=str(settings.db_dsn), init=init_connection, server_settings={'application_name': settings.web.app_title})
+    _pool = await asyncpg.create_pool(
+        min_size=0,
+        max_size=20,
+        dsn=str(settings.db_dsn),
+        init=init_connection,
+        server_settings={"application_name": settings.web.app_title},
+    )
 
 
 async def disconnect():
@@ -21,7 +29,9 @@ async def disconnect():
 
 
 async def init_connection(conn: asyncpg.Connection):
-    await conn.set_type_codec('jsonb', encoder=_encode_json, decoder=json.loads, schema='pg_catalog')
+    await conn.set_type_codec(
+        "jsonb", encoder=_encode_json, decoder=json.loads, schema="pg_catalog"
+    )
 
 
 def _encode_json(payload: Any) -> str:
@@ -68,7 +78,9 @@ class transaction:  # pylint: disable=invalid-name
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            logger.debug('Transaction rollback. Reason: %s %s %s', exc_type, exc_val, exc_tb)
+            logger.debug(
+                "Transaction rollback. Reason: %s %s %s", exc_type, exc_val, exc_tb
+            )
             await self.trans.rollback()
         else:
             await self.trans.commit()

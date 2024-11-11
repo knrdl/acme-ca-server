@@ -163,7 +163,9 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
             raise ValueError('"none" is a forbidden JWS algorithm!')
         try:
             # signature is checked here
-            jws.deserialize(await request.body(), key)
+
+            request_body = await request.body()
+            jws.deserialize(request_body, key)
         except jwcrypto.jws.InvalidJWSSignature as exc:
             raise ACMEException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -172,7 +174,9 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
             ) from exc
 
         if self.payload_model and payload:
-            payload_data = self.payload_model(**json.loads(base64url_decode(payload)))
+            payload_dict = json.loads(base64url_decode(payload))
+
+            payload_data = self.payload_model(**payload_dict)
         else:
             payload_data = None
 
