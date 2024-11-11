@@ -27,7 +27,7 @@ def fastapi_app() -> FastAPI:
 
 
 @pytest.fixture
-def fastapi_testclient(fastapi_app: FastAPI) -> TestClient:
+def fastapi_testclient(fastapi_app: FastAPI) -> TestClient:  # type: ignore
     with TestClient(fastapi_app) as ac:
         yield ac
 
