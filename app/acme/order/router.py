@@ -93,6 +93,7 @@ async def submit_order(
         chal_tkns = {domain: secrets.token_urlsafe(32) for domain in domains}
         return order_id, authz_ids, chal_ids, chal_tkns
 
+    # Per domain, one challenge is created
     order_id, authz_ids, chal_ids, chal_tkns = await asyncio.to_thread(
         generate_tokens_sync, domains
     )
