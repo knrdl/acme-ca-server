@@ -13,8 +13,11 @@ from tests.utils import generate_random_encryption_key
 @pytest.fixture
 def fastapi_app() -> FastAPI:
     os.environ["ca_encryption_key"] = generate_random_encryption_key()
+
+    # This has to be set before importing the app
     os.environ["external_url"] = "http://testserver/"
 
+    # Before testing, make sure this connection is available
     os.environ["db_dsn"] = (
         "postgresql://postgres:postgres@localhost/acme_ca_server_test"
     )
