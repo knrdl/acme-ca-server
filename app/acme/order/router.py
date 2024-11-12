@@ -7,11 +7,9 @@ from fastapi import APIRouter, Depends, Response, status
 from jwcrypto.common import base64url_decode
 from pydantic import BaseModel, conlist, constr
 
-from app.fastapi_dependencies import get_settings
-
 from ... import db
 from ...ca import service as ca_service
-from ...config import Settings, settings
+from ...config import settings
 from ...logger import logger
 
 from ..certificate.service import SerialNumberConverter, check_csr
