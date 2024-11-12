@@ -1,3 +1,4 @@
+from typing import Generator
 from fastapi import FastAPI
 import os
 
@@ -30,7 +31,7 @@ def fastapi_app() -> FastAPI:
 
 
 @pytest.fixture
-def fastapi_testclient(fastapi_app: FastAPI) -> TestClient:  # type: ignore
+def fastapi_testclient(fastapi_app: FastAPI) -> Generator[TestClient]:
     with TestClient(fastapi_app, base_url=os.environ["external_url"]) as ac:
         yield ac
 
