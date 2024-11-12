@@ -73,9 +73,8 @@ async def submit_order(
     data: Annotated[
         RequestData[NewOrderPayload], Depends(SignedRequest(NewOrderPayload))
     ],
-    # settings: Settings = Depends(get_settings),
 ):
-    # In here, challenges are getting created with random tokens
+    # In here, a challenge is getting created with a random token
 
     if data.payload.notBefore is not None or data.payload.notAfter is not None:
         raise ACMEException(
