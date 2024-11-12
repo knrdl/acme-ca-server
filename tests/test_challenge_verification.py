@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 import httpx
 from jwcrypto import jwk, jws
 
-# sourcery skip: dont-import-test-modules
 from tests.utils import (
     create_account_response,
     create_authorization_code_response,

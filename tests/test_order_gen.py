@@ -1,8 +1,6 @@
 from fastapi.testclient import TestClient
 
 from jwcrypto import jwk
-
-# sourcery skip: dont-import-test-modules
 from tests.utils import create_account_response, create_new_order_response, create_nonce
 
 
