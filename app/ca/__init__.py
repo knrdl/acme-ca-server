@@ -33,7 +33,6 @@ if settings.ca.enabled:
         return Response(content=crl_pem, media_type="application/pkix-crl")
 
     async def init():
-        # TODO decouple this to work with custom paths or certifificate data
         CA_CERT_PATH = getenv("CA_CERT_PATH") or "/import/ca.pem"
         CA_PRIVATE_KEY_PATH = getenv("CA_PRIVATE_KEY_PATH") or "/import/ca.key"
 
