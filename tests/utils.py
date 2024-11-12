@@ -32,7 +32,6 @@ def create_account_response(testclient: TestClient, nonce: str, jwk_key: jwk.JWK
         "nonce": nonce,
         # This must be the same as the link we are posting
         "url": "http://testserver/acme/new-account",
-        # should be an account url
         "jwk": jwk_export,
     }
 
@@ -67,7 +66,6 @@ def create_new_order_response(
         "alg": "ES256",
         "nonce": order_nonce,
         "url": "http://testserver/acme/new-order",
-        # should be an account url
         "kid": account_location_header,
     }
 
