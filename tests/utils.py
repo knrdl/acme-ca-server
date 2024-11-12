@@ -7,6 +7,13 @@ from jwcrypto.common import json_encode
 from jwcrypto import jwk, jws
 
 
+def generate_random_encryption_key():
+    from cryptography.fernet import Fernet
+
+    key = Fernet.generate_key().decode()
+    return key
+
+
 def create_nonce(testclient: TestClient):
     nonce_response = testclient.head("/acme/new-nonce")
     nonce_headers = nonce_response.headers

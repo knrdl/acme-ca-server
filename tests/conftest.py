@@ -7,13 +7,12 @@ import pytest
 from app.constants import PROJECT_ROOT
 from jwcrypto import jwk
 
+from tests.utils import generate_random_encryption_key
+
 
 @pytest.fixture
 def fastapi_app() -> FastAPI:
-    # TODO replace this with an randomly generated key
-    os.environ["ca_encryption_key"] = "DaxNj1bTiCsk6aQiY43hz2jDqBZAU5kta1uNBzp_yqo="
-
-    # can this be retrieved manually?
+    os.environ["ca_encryption_key"] = generate_random_encryption_key()
     os.environ["external_url"] = "http://testserver/"
 
     os.environ["db_dsn"] = (
@@ -21,6 +20,7 @@ def fastapi_app() -> FastAPI:
     )
     os.environ["CA_CERT_PATH"] = str(PROJECT_ROOT / "ca.pem")
     os.environ["CA_PRIVATE_KEY_PATH"] = str(PROJECT_ROOT / "ca.key")
+
     from app.main import app
 
     return app
@@ -28,7 +28,7 @@ def fastapi_app() -> FastAPI:
 
 @pytest.fixture
 def fastapi_testclient(fastapi_app: FastAPI) -> TestClient:  # type: ignore
-    with TestClient(fastapi_app) as ac:
+    with TestClient(fastapi_app, base_url=os.environ["external_url"]) as ac:
         yield ac
 
 
