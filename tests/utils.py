@@ -1,4 +1,5 @@
 import json
+from typing import Any
 from fastapi.testclient import TestClient
 
 from jwcrypto.common import json_encode
@@ -48,10 +49,9 @@ def create_account_response(testclient: TestClient, nonce: str, jwk_key: jwk.JWK
     return response
 
 
-def create_new_order_response(testclient: TestClient, jwk_key: jwk.JWK):
-    nonce = create_nonce(testclient)
-
-    account_response = create_account_response(testclient, nonce, jwk_key)
+def create_new_order_response(
+    testclient: TestClient, jwk_key: jwk.JWK, account_response: Any
+):
     account_location_header = account_response.headers.get("location")
 
     order_nonce = create_nonce(testclient)
@@ -80,6 +80,45 @@ def create_new_order_response(testclient: TestClient, jwk_key: jwk.JWK):
     response = testclient.post(
         "/acme/new-order",
         json=jws_serialized,
-        headers={"Content-Type": request_content_type},
+        headers={"Content-Type": "application/jose+json"},
+    )
+    return response
+
+
+def create_authorization_code_response(
+    fastapi_testclient: TestClient,
+    jwk_key: jwk.JWK,
+    account_response: Any,
+    new_order_response: Any,
+):
+    account_location_header = account_response.headers.get("location")
+
+    # Retrieve the auth codes
+    response_json = new_order_response.json()
+    authorizations = response_json["authorizations"]
+
+    # Get the first one
+    assert len(authorizations)
+    first_auth_code_url = authorizations[0]
+
+    view_nonce = create_nonce(fastapi_testclient)
+
+    protected = {
+        "alg": "ES256",
+        "nonce": view_nonce,
+        "url": first_auth_code_url,
+        "kid": account_location_header,
+    }
+    payload_encoded = json_encode(None).encode("utf-8")
+
+    jws_object = jws.JWS(payload_encoded)
+    jws_object.add_signature(jwk_key, protected=json_encode(protected), alg="ES256")
+
+    jws_serialized = json.loads(jws_object.serialize(compact=False))
+
+    response = fastapi_testclient.post(
+        first_auth_code_url,
+        headers={"Content-Type": "application/jose+json"},
+        json=jws_serialized,
     )
     return response

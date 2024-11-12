@@ -176,7 +176,10 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         if self.payload_model and payload:
             payload_dict = json.loads(base64url_decode(payload))
 
-            payload_data = self.payload_model(**payload_dict)
+            if payload_dict is not None:
+                payload_data = self.payload_model(**payload_dict)
+            else:
+                payload_data = None
         else:
             payload_data = None
 
