@@ -1,5 +1,6 @@
 import json
 from fastapi.testclient import TestClient
+import httpx
 from jwcrypto import jwk, jws
 
 # sourcery skip: dont-import-test-modules
@@ -10,6 +11,8 @@ from tests.utils import (
     create_nonce,
 )
 from jwcrypto.common import json_encode
+
+from unittest import mock
 
 
 def test_challenge_fulfill(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
@@ -32,6 +35,7 @@ def test_challenge_fulfill(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
     # Retrieve the first challenge and it's URL
     first_challenge = challenges[0]
     challenge_url = first_challenge["url"]
+    challenge_token = first_challenge["token"]
 
     # Retrieve the domain to put the token in
     domain = auth_codes_json["identifier"]["value"]
@@ -51,10 +55,20 @@ def test_challenge_fulfill(fastapi_testclient: TestClient, jwk_key: jwk.JWK):
 
     jws_serialized = json.loads(jws_object.serialize(compact=False))
 
-    # mock httpx async client
-    response = fastapi_testclient.post(
-        challenge_url,
-        headers={"Content-Type": "application/jose+json"},
-        json=jws_serialized,
+    # rstrip the challenge contents like done in production
+    mock_challenge_file_contents = f"{challenge_token}.{jwk_key.thumbprint()}".rstrip()
+
+    with mock.patch(
+        "app.acme.challenge.service.httpx.AsyncClient.get",
+        return_value=httpx.Response(200, text=mock_challenge_file_contents),
+    ) as mock_get:
+        response = fastapi_testclient.post(
+            challenge_url,
+            headers={"Content-Type": "application/jose+json"},
+            json=jws_serialized,
+        )
+        assert response.is_success
+
+    mock_get.assert_called_once_with(
+        f"http://{domain}:80/.well-known/acme-challenge/{challenge_token}"
     )
-    print(response)
