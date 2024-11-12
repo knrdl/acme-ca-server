@@ -19,9 +19,6 @@ async def verify_challenge(
     chal_id: str,
     data: Annotated[RequestData, Depends(SignedRequest())],
 ):
-    # TODO before this starts, the ACME-server has to send 4 challenges with 4 unique tokens.
-    # These tokens then need to be presented in a JWT.
-
     must_solve_challenge = False
     async with db.transaction() as sql:
         record = await sql.record(
