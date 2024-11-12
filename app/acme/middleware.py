@@ -9,7 +9,6 @@ from pydantic import AnyHttpUrl, BaseModel, ConfigDict, constr, model_validator
 
 from app.fastapi_dependencies import get_settings
 
-# import db
 from .. import db
 from ..config import Settings
 
