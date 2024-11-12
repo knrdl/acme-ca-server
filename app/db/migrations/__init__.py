@@ -1,6 +1,4 @@
-from pathlib import Path
-
-from app.constants import MIGRATIONS_PATH, PROJECT_ROOT
+from app.constants import MIGRATIONS_PATH
 
 from ... import db
 from ...logger import logger
@@ -18,8 +16,6 @@ async def run():
         """)
 
         dirty = False
-
-        x = MIGRATIONS_PATH
 
         while True:
             cur_level = await sql.value("select migration from migrations")

@@ -81,7 +81,6 @@ def create_new_order_response(
 
     jws_serialized = json.loads(jws_object.serialize(compact=False))
 
-    request_content_type = "application/jose+json"
     response = testclient.post(
         "/acme/new-order",
         json=jws_serialized,

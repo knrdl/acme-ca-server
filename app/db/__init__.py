@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from ..config import settings
 from ..logger import logger
 
-from . import migrations
+from . import migrations  # noqa: F401
 
 _pool: asyncpg.pool.Pool = None
 
