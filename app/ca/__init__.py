@@ -33,17 +33,17 @@ if settings.ca.enabled:
         return Response(content=crl_pem, media_type="application/pkix-crl")
 
     async def init():
-        CA_CERT_PATH = getenv("CA_CERT_PATH") or "/import/ca.pem"
-        CA_PRIVATE_KEY_PATH = getenv("CA_PRIVATE_KEY_PATH") or "/import/ca.key"
+        ca_cert_path = getenv("CA_CERT_PATH") or "/import/ca.pem"
+        ca_private_key_path = getenv("CA_PRIVATE_KEY_PATH") or "/import/ca.key"
 
-        if Path(CA_CERT_PATH).is_file() and Path(CA_PRIVATE_KEY_PATH).is_file():
-            with open(CA_PRIVATE_KEY_PATH, "rb") as f:
+        if Path(ca_cert_path).is_file() and Path(ca_private_key_path).is_file():
+            with open(ca_private_key_path, "rb") as f:
                 ca_key_bytes = f.read()
             ca_key = serialization.load_pem_private_key(ca_key_bytes, None)
             f = Fernet(settings.ca.encryption_key.get_secret_value())
             ca_key_enc = f.encrypt(ca_key_bytes)
 
-            with open(CA_CERT_PATH, "rb") as f:
+            with open(ca_cert_path, "rb") as f:
                 ca_cert_bytes = f.read()
             ca_cert = x509.load_pem_x509_certificate(ca_cert_bytes, None)
             serial_number = SerialNumberConverter.int2hex(ca_cert.serial_number)

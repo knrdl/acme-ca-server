@@ -11,6 +11,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
+from .db import migrations
+
 from . import acme
 from . import ca
 from . import db
@@ -25,7 +27,7 @@ from .config import settings
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await db.connect()
-    await db.migrations.run()
+    await migrations.run()
     await ca.init()
     await acme.start_cronjobs()
     yield
