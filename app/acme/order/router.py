@@ -51,7 +51,7 @@ def order_response(
 api = APIRouter(tags=['acme:order'])
 
 
-@api.post('/new-order', status_code=201)
+@api.post('/new-order', status_code=status.HTTP_201_CREATED)
 async def submit_order(response: Response, data: Annotated[RequestData[NewOrderPayload], Depends(SignedRequest(NewOrderPayload))]):
     if data.payload.notBefore is not None or data.payload.notAfter is not None:
         raise ACMEException(exctype='malformed',
