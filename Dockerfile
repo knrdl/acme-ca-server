@@ -3,7 +3,6 @@ FROM docker.io/python:3.12.7-alpine
 RUN adduser --no-create-home --disabled-password appuser && \
     apk update --no-cache
 
-# WORKDIR /app
 EXPOSE 8080/tcp
 ENV PYTHONUNBUFFERED=True
 
