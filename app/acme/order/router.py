@@ -18,8 +18,8 @@ from ..middleware import RequestData, SignedRequest
 
 
 class NewOrderDomain(BaseModel):
-    type: Literal["dns"]  # noqa: A003 (allow shadowing builtin "type")
-    value: constr(pattern=f"^{settings.acme.target_domain_regex.pattern}$")
+    type: Literal['dns']  # noqa: A003 (allow shadowing builtin "type")
+    value: constr(pattern=f'^{settings.acme.target_domain_regex.pattern}$')
 
 
 class NewOrderPayload(BaseModel):
@@ -45,27 +45,27 @@ def order_response(
     cert_serial_number: Optional[str] = None,
 ):
     return {
-        "status": status,
-        "expires": expires_at,
-        "identifiers": [{"type": "dns", "value": domain} for domain in domains],
-        "authorizations": [
-            f"{settings.external_url}acme/authorizations/{authz_id}"
+        'status': status,
+        'expires': expires_at,
+        'identifiers': [{'type': 'dns', 'value': domain} for domain in domains],
+        'authorizations': [
+            f'{settings.external_url}acme/authorizations/{authz_id}'
             for authz_id in authz_ids
         ],
-        "finalize": f"{settings.external_url}acme/orders/{order_id}/finalize",
-        "error": error.value if error else None,
-        "notBefore": not_valid_before,
-        "notAfter": not_valid_after,
-        "certificate": f"{settings.external_url}acme/certificates/{cert_serial_number}"
+        'finalize': f'{settings.external_url}acme/orders/{order_id}/finalize',
+        'error': error.value if error else None,
+        'notBefore': not_valid_before,
+        'notAfter': not_valid_after,
+        'certificate': f'{settings.external_url}acme/certificates/{cert_serial_number}'
         if cert_serial_number
         else None,
     }
 
 
-api = APIRouter(tags=["acme:order"])
+api = APIRouter(tags=['acme:order'])
 
 
-@api.post("/new-order", status_code=201)
+@api.post('/new-order', status_code=201)
 async def submit_order(
     response: Response,
     data: Annotated[
@@ -76,8 +76,8 @@ async def submit_order(
 
     if data.payload.notBefore is not None or data.payload.notAfter is not None:
         raise ACMEException(
-            exctype="malformed",
-            detail="Parameter notBefore and notAfter may not be specified as the constraints might cannot be enforced.",
+            exctype='malformed',
+            detail='Parameter notBefore and notAfter may not be specified as the constraints might cannot be enforced.',
             new_nonce=data.new_nonce,
         )
 
@@ -116,7 +116,7 @@ async def submit_order(
             ],
         )
 
-    response.headers["Location"] = f"{settings.external_url}acme/orders/{order_id}"
+    response.headers['Location'] = f'{settings.external_url}acme/orders/{order_id}'
     return order_response(
         status=order_status,
         expires_at=expires_at,
@@ -126,7 +126,7 @@ async def submit_order(
     )
 
 
-@api.post("/orders/{order_id}")
+@api.post('/orders/{order_id}')
 async def view_order(
     order_id: str, data: Annotated[RequestData, Depends(SignedRequest())]
 ):
@@ -141,26 +141,26 @@ async def view_order(
         if not record:
             raise ACMEException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                exctype="malformed",
-                detail="specified order not found for current account",
+                exctype='malformed',
+                detail='specified order not found for current account',
                 new_nonce=data.new_nonce,
             )
         order_status, expires_at, err = record
         authzs = [
             row
             async for row in sql(
-                "select id, domain from authorizations where order_id = $1", order_id
+                'select id, domain from authorizations where order_id = $1', order_id
             )
         ]
         cert_record = await sql.record(
-            "select serial_number, not_valid_before, not_valid_after from certificates where order_id = $1",
+            'select serial_number, not_valid_before, not_valid_after from certificates where order_id = $1',
             order_id,
         )
     if cert_record:
         cert_sn, not_valid_before, not_valid_after = cert_record
     if err:
         acme_error = ACMEException(
-            exctype=err.get("type"), detail=err.get("detail"), new_nonce=data.new_nonce
+            exctype=err.get('type'), detail=err.get('detail'), new_nonce=data.new_nonce
         )
     else:
         acme_error = None
@@ -177,7 +177,7 @@ async def view_order(
     )
 
 
-@api.post("/orders/{order_id}/finalize")
+@api.post('/orders/{order_id}/finalize')
 async def finalize_order(
     order_id: str,
     data: Annotated[
@@ -196,16 +196,16 @@ async def finalize_order(
     if not record:
         raise ACMEException(
             status_code=status.HTTP_404_NOT_FOUND,
-            exctype="malformed",
-            detail="Unknown order for specified account.",
+            exctype='malformed',
+            detail='Unknown order for specified account.',
             new_nonce=data.new_nonce,
         )
     order_status, expires_at, is_expired = record
-    if order_status != "ready":
+    if order_status != 'ready':
         raise ACMEException(
             status_code=status.HTTP_403_FORBIDDEN,
-            exctype="orderNotReady",
-            detail=f"order status is: {order_status}",
+            exctype='orderNotReady',
+            detail=f'order status is: {order_status}',
             new_nonce=data.new_nonce,
         )
     if is_expired:
@@ -222,8 +222,8 @@ async def finalize_order(
             )
         raise ACMEException(
             status_code=status.HTTP_403_FORBIDDEN,
-            exctype="orderNotReady",
-            detail="order expired",
+            exctype='orderNotReady',
+            detail='order expired',
             new_nonce=data.new_nonce,
         )
     else:
@@ -260,11 +260,11 @@ async def finalize_order(
     except Exception as e:
         err = ACMEException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            exctype="serverInternal",
+            exctype='serverInternal',
             detail=str(e),
             new_nonce=data.new_nonce,
         )
-        logger.warning("sign csr failed (account: %s)", data.account_id, exc_info=True)
+        logger.warning('sign csr failed (account: %s)', data.account_id, exc_info=True)
 
     if err is False:
         cert_sn = SerialNumberConverter.int2hex(signed_cert.cert.serial_number)

@@ -18,7 +18,7 @@ contactType = conlist(
     constr(
         strip_whitespace=True,
         to_lower=True,
-        pattern=f"^mailto:{settings.acme.mail_target_regex.pattern}$",
+        pattern=f'^mailto:{settings.acme.mail_target_regex.pattern}$',
     ),
     min_length=1,
     max_length=1,
@@ -40,23 +40,23 @@ class NewAccountPayload(BaseModel):
 
     @property
     def mail_addr(self) -> str:
-        return self.contact[0].removeprefix("mailto:")
+        return self.contact[0].removeprefix('mailto:')
 
 
 class UpdateAccountPayload(BaseModel):
-    status: Literal["deactivated"] | None = None
+    status: Literal['deactivated'] | None = None
     contact: contactType | None = None
 
     @property
     def mail_addr(self) -> str | None:
         if self.contact:
-            return self.contact[0].removeprefix("mailto:")
+            return self.contact[0].removeprefix('mailto:')
 
 
-api = APIRouter(tags=["acme:account"])
+api = APIRouter(tags=['acme:account'])
 
 
-@api.post("/new-account")
+@api.post('/new-account')
 async def create_or_view_account(
     response: Response,
     data: Annotated[
@@ -71,7 +71,7 @@ async def create_or_view_account(
 
     async with db.transaction() as sql:
         result = await sql.record(
-            "select id, mail, status from accounts where jwk=$1 and (id=$2 or $2::text is null)",
+            'select id, mail, status from accounts where jwk=$1 and (id=$2 or $2::text is null)',
             jwk_json,
             data.account_id,
         )
@@ -79,16 +79,16 @@ async def create_or_view_account(
 
     if account_exists:
         account_id, account_status, mail_addr = (
-            result["id"],
-            result["status"],
-            result["mail"],
+            result['id'],
+            result['status'],
+            result['mail'],
         )
     else:
         if data.payload.onlyReturnExisting:
             raise ACMEException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                exctype="accountDoesNotExist",
-                detail="Account does not exist",
+                exctype='accountDoesNotExist',
+                detail='Account does not exist',
                 new_nonce=data.new_nonce,
             )
         else:  # create new account
@@ -114,25 +114,25 @@ async def create_or_view_account(
                 )
 
     response.status_code = 200 if account_exists else 201
-    response.headers["Location"] = f"{settings.external_url}acme/accounts/{account_id}"
+    response.headers['Location'] = f'{settings.external_url}acme/accounts/{account_id}'
     return {
-        "status": account_status,
-        "contact": ["mailto:" + mail_addr],
-        "orders": f"{settings.external_url}acme/accounts/{account_id}/orders",
+        'status': account_status,
+        'contact': ['mailto:' + mail_addr],
+        'orders': f'{settings.external_url}acme/accounts/{account_id}/orders',
     }
 
 
-@api.post("/key-change")
+@api.post('/key-change')
 async def change_key(data: Annotated[RequestData, Depends(SignedRequest())]):
     raise ACMEException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        exctype="serverInternal",
-        detail="not implemented",
+        exctype='serverInternal',
+        detail='not implemented',
         new_nonce=data.new_nonce,
     )  # todo
 
 
-@api.post("/accounts/{acc_id}")
+@api.post('/accounts/{acc_id}')
 async def view_or_update_account(
     acc_id: str,
     data: Annotated[
@@ -143,8 +143,8 @@ async def view_or_update_account(
     if acc_id != data.account_id:
         raise ACMEException(
             status_code=status.HTTP_403_FORBIDDEN,
-            exctype="unauthorized",
-            detail="wrong kid",
+            exctype='unauthorized',
+            detail='wrong kid',
             new_nonce=data.new_nonce,
         )
 
@@ -165,7 +165,7 @@ async def view_or_update_account(
             )
 
     if (
-        data.payload.status == "deactivated"
+        data.payload.status == 'deactivated'
     ):  # https://www.rfc-editor.org/rfc/rfc8555#section-7.3.6
         async with db.transaction() as sql:
             await sql.exec(
@@ -180,25 +180,25 @@ async def view_or_update_account(
 
     async with db.transaction(readonly=True) as sql:
         account_status, mail_addr = await sql.record(
-            "select status, mail from accounts where id = $1", acc_id
+            'select status, mail from accounts where id = $1', acc_id
         )
 
     return {
-        "status": account_status,
-        "contact": ["mailto:" + mail_addr],
-        "orders": f"{settings.external_url}acme/accounts/{acc_id}/orders",
+        'status': account_status,
+        'contact': ['mailto:' + mail_addr],
+        'orders': f'{settings.external_url}acme/accounts/{acc_id}/orders',
     }
 
 
-@api.post("/accounts/{acc_id}/orders", tags=["acme:order"])
+@api.post('/accounts/{acc_id}/orders', tags=['acme:order'])
 async def view_orders(
     acc_id: str, data: Annotated[RequestData, Depends(SignedRequest())]
 ):
     if acc_id != data.account_id:
         raise ACMEException(
             status_code=status.HTTP_403_FORBIDDEN,
-            exctype="unauthorized",
-            detail="wrong account id provided",
+            exctype='unauthorized',
+            detail='wrong account id provided',
             new_nonce=data.new_nonce,
         )
     async with db.transaction(readonly=True) as sql:
@@ -210,7 +210,7 @@ async def view_orders(
             )
         ]
     return {
-        "orders": [
-            f"{settings.external_url}acme/orders/{order_id}" for order_id in orders
+        'orders': [
+            f'{settings.external_url}acme/orders/{order_id}' for order_id in orders
         ]
     }

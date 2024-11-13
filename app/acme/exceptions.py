@@ -29,7 +29,7 @@ AcmeExceptionTypes = Literal[
     'unauthorized',
     'unsupportedContact',
     'unsupportedIdentifier',
-    'userActionRequired'
+    'userActionRequired',
 ]
 
 
@@ -41,8 +41,12 @@ class ACMEException(Exception):
     new_nonce: str | None
 
     def __init__(
-        self, *, exctype: AcmeExceptionTypes, detail: str = '',
-        status_code: int = status.HTTP_400_BAD_REQUEST, new_nonce: str | None = None
+        self,
+        *,
+        exctype: AcmeExceptionTypes,
+        detail: str = '',
+        status_code: int = status.HTTP_400_BAD_REQUEST,
+        new_nonce: str | None = None,
     ) -> None:
         self.headers = {'Link': f'<{settings.external_url}acme/directory>;rel="index"'}
         # when a new nonce is already created it should also be used in the exception case
@@ -54,17 +58,23 @@ class ACMEException(Exception):
 
     @property
     def value(self):
-        return {'type': 'urn:ietf:params:acme:error:' + self.exc_type, 'detail': self.detail}
+        return {
+            'type': 'urn:ietf:params:acme:error:' + self.exc_type,
+            'detail': self.detail,
+        }
 
     async def as_response(self):
         if not self.new_nonce:
-            from .nonce.service import generate as generate_nonce  # import here to prevent circular import  # pylint: disable=import-outside-toplevel
+            from .nonce.service import (
+                generate as generate_nonce,
+            )  # import here to prevent circular import  # pylint: disable=import-outside-toplevel
+
             self.new_nonce = await generate_nonce()
         return JSONResponse(
             status_code=self.status_code,
             content=self.value,
             headers=dict(self.headers, **{'Replay-Nonce': self.new_nonce}),
-            media_type='application/problem+json'
+            media_type='application/problem+json',
         )
 
     def __repr__(self) -> str:

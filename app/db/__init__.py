@@ -17,7 +17,7 @@ async def connect():
         max_size=20,
         dsn=str(settings.db_dsn),
         init=init_connection,
-        server_settings={"application_name": settings.web.app_title},
+        server_settings={'application_name': settings.web.app_title},
     )
 
 
@@ -28,7 +28,7 @@ async def disconnect():
 
 async def init_connection(conn: asyncpg.Connection):
     await conn.set_type_codec(
-        "jsonb", encoder=_encode_json, decoder=json.loads, schema="pg_catalog"
+        'jsonb', encoder=_encode_json, decoder=json.loads, schema='pg_catalog'
     )
 
 
@@ -77,7 +77,7 @@ class transaction:  # pylint: disable=invalid-name
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
             logger.debug(
-                "Transaction rollback. Reason: %s %s %s", exc_type, exc_val, exc_tb
+                'Transaction rollback. Reason: %s %s %s', exc_type, exc_val, exc_tb
             )
             await self.trans.rollback()
         else:

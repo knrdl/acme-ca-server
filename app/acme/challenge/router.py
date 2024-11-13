@@ -10,10 +10,10 @@ from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest
 from . import service
 
-api = APIRouter(tags=["acme:challenge"])
+api = APIRouter(tags=['acme:challenge'])
 
 
-@api.post("/challenges/{chal_id}")
+@api.post('/challenges/{chal_id}')
 async def verify_challenge(
     response: Response,
     chal_id: str,
@@ -34,8 +34,8 @@ async def verify_challenge(
         if not record:
             raise ACMEException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                exctype="malformed",
-                detail="specified challenge not available for current account",
+                exctype='malformed',
+                detail='specified challenge not available for current account',
                 new_nonce=data.new_nonce,
             )
         (
@@ -49,7 +49,7 @@ async def verify_challenge(
             order_id,
             order_status,
         ) = record
-        if order_status == "invalid":
+        if order_status == 'invalid':
             await sql.exec(
                 """update authorizations set status = 'invalid' where id = $1""",
                 authz_id,
@@ -60,9 +60,9 @@ async def verify_challenge(
             """,
                 chal_id,
             )
-            chal_status = "invalid"
-        if chal_status == "pending" and order_status == "pending":
-            if authz_status == "pending":
+            chal_status = 'invalid'
+        if chal_status == 'pending' and order_status == 'pending':
+            if authz_status == 'pending':
                 must_solve_challenge = True
                 chal_status = await sql.value(
                     """update challenges set status = 'processing' where id = $1 returning status""",
@@ -75,11 +75,11 @@ async def verify_challenge(
                 """,
                     chal_id,
                 )
-                chal_status = "invalid"
+                chal_status = 'invalid'
     if chal_err:
         acme_error = ACMEException(
-            exctype=chal_err.get("type"),
-            detail=chal_err.get("detail"),
+            exctype=chal_err.get('type'),
+            detail=chal_err.get('detail'),
             new_nonce=data.new_nonce,
         )
     else:
@@ -87,7 +87,7 @@ async def verify_challenge(
 
     # use append because there can be multiple Link-Headers with different rel targets
     response.headers.append(
-        "Link", f'<{settings.external_url}authorization/{authz_id}>;rel="up"'
+        'Link', f'<{settings.external_url}authorization/{authz_id}>;rel="up"'
     )
 
     if must_solve_challenge:
@@ -101,12 +101,12 @@ async def verify_challenge(
         except Exception as e:
             err = ACMEException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                exctype="serverInternal",
+                exctype='serverInternal',
                 detail=str(e),
                 new_nonce=data.new_nonce,
             )
             logger.warning(
-                "challenge failed for %s (account: %s)",
+                'challenge failed for %s (account: %s)',
                 domain,
                 data.account_id,
                 exc_info=True,
@@ -156,10 +156,10 @@ async def verify_challenge(
                 )
 
     return {
-        "type": "http-01",
-        "url": f"{settings.external_url}acme/challenges/{chal_id}",
-        "status": chal_status,
-        "validated": chal_validated_at,
-        "token": token,
-        "error": acme_error.value if acme_error else None,
+        'type': 'http-01',
+        'url': f'{settings.external_url}acme/challenges/{chal_id}',
+        'status': chal_status,
+        'validated': chal_validated_at,
+        'token': token,
+        'error': acme_error.value if acme_error else None,
     }

@@ -17,5 +17,5 @@ async def get_directory():
         'revokeCert': f'{settings.external_url}acme/revoke-cert',
         'keyChange': f'{settings.external_url}acme/key-change',
         # newAuthz: is not supported
-        'meta': meta
+        'meta': meta,
     }

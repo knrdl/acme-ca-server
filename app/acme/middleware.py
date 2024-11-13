@@ -19,17 +19,17 @@ from .nonce import service as nonce_service
 class RsaJwk(BaseModel):
     n: constr(min_length=1)
     e: constr(min_length=1)
-    kty: Literal["RSA"]
+    kty: Literal['RSA']
 
 
 class EcJwk(BaseModel):
-    crv: Literal["P-256"]
+    crv: Literal['P-256']
     x: constr(min_length=1)
     y: constr(min_length=1)
-    kty: Literal["EC"]
+    kty: Literal['EC']
 
 
-PayloadT = TypeVar("PayloadT")
+PayloadT = TypeVar('PayloadT')
 
 
 class RequestData(BaseModel, Generic[PayloadT]):
@@ -43,25 +43,25 @@ class RequestData(BaseModel, Generic[PayloadT]):
 
 class Protected(BaseModel):
     # see https://www.rfc-editor.org/rfc/rfc8555#section-6.2
-    alg: Literal["RS256", "RS384", "RS512", "ES256", "ES384", "ES512"]
+    alg: Literal['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512']
     jwk: RsaJwk | EcJwk | None = None  # new user
     kid: str | None = None  # existing user
     nonce: constr(min_length=1)
     url: AnyHttpUrl
 
-    @model_validator(mode="after")
-    def valid_check(self) -> "Protected":
+    @model_validator(mode='after')
+    def valid_check(self) -> 'Protected':
         if not self.jwk and not self.kid:
             raise ACMEException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                exctype="malformed",
-                detail="either jwk or kid must be set",
+                exctype='malformed',
+                detail='either jwk or kid must be set',
             )
         if self.jwk and self.kid:
             raise ACMEException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                exctype="malformed",
-                detail="the fields jwk and kid are mutually exclusive",
+                exctype='malformed',
+                detail='the fields jwk and kid are mutually exclusive',
             )
         return self
 
@@ -80,10 +80,10 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def _schemeless_url(url: str):
-        if url.startswith("https://"):
-            return url.removeprefix("https://")
-        if url.startswith("http://"):
-            return url.removeprefix("http://")
+        if url.startswith('https://'):
+            return url.removeprefix('https://')
+        if url.startswith('http://'):
+            return url.removeprefix('http://')
         return url
 
     async def __call__(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
@@ -92,7 +92,7 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         response: Response,
         content_type: str = Header(
             ...,
-            pattern=r"^application/jose\+json$",
+            pattern=r'^application/jose\+json$',
             description='Content Type must be "application/jose+json"',
         ),
         protected: constr(min_length=1) = Body(...),
@@ -111,25 +111,25 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         ):
             raise ACMEException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                exctype="unauthorized",
-                detail="Requested URL does not match with actually called URL",
+                exctype='unauthorized',
+                detail='Requested URL does not match with actually called URL',
             )
 
         if protected_data.kid:  # account exists
-            base_url = f"{settings.external_url}acme/accounts/"
+            base_url = f'{settings.external_url}acme/accounts/'
             if not protected_data.kid.startswith(base_url):
                 raise ACMEException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    exctype="malformed",
+                    exctype='malformed',
                     detail=f'JWS invalid: kid must start with: "{base_url}"',
                 )
 
-            account_id = protected_data.kid.split("/")[-1]
+            account_id = protected_data.kid.split('/')[-1]
             if account_id:
                 async with db.transaction(readonly=True) as sql:
                     if self.allow_blocked_account:
                         key_data = await sql.value(
-                            "select jwk from accounts where id = $1", account_id
+                            'select jwk from accounts where id = $1', account_id
                         )
                     else:
                         key_data = await sql.value(
@@ -141,8 +141,8 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
             if not key_data:
                 raise ACMEException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    exctype="accountDoesNotExist",
-                    detail="unknown, deactived or revoked account",
+                    exctype='accountDoesNotExist',
+                    detail='unknown, deactived or revoked account',
                 )
             key = jwcrypto.jwk.JWK()
             key.import_key(**key_data)
@@ -153,12 +153,12 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         else:
             raise ACMEException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                exctype="accountDoesNotExist",
-                detail="unknown account. not accepting new accounts",
+                exctype='accountDoesNotExist',
+                detail='unknown account. not accepting new accounts',
             )
 
         jws = jwcrypto.jws.JWS()
-        if "none" in jws.allowed_algs:
+        if 'none' in jws.allowed_algs:
             raise ValueError('"none" is a forbidden JWS algorithm!')
         try:
             # signature is checked here
@@ -168,8 +168,8 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         except jwcrypto.jws.InvalidJWSSignature as exc:
             raise ACMEException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                exctype="unauthorized",
-                detail="signature check failed",
+                exctype='unauthorized',
+                detail='signature check failed',
             ) from exc
 
         if self.payload_model and payload:
@@ -184,10 +184,10 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
 
         new_nonce = await nonce_service.refresh(protected_data.nonce)
 
-        response.headers["Replay-Nonce"] = new_nonce
+        response.headers['Replay-Nonce'] = new_nonce
         # use append because there can be multiple Link-Headers with different rel targets
         response.headers.append(
-            "Link", f'<{settings.external_url}acme/directory>;rel="index"'
+            'Link', f'<{settings.external_url}acme/directory>;rel="index"'
         )
 
         return RequestData[self.payload_model](

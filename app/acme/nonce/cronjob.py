@@ -14,4 +14,5 @@ async def start():
                 logger.error('could not purge old nonces', exc_info=True)
             finally:
                 await asyncio.sleep(1 * 60 * 60)
+
     asyncio.create_task(run())

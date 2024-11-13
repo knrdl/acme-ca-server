@@ -11,13 +11,13 @@ from ..middleware import RequestData, SignedRequest
 
 
 class UpdateAuthzPayload(BaseModel):
-    status: Literal["deactivated"] | None = None
+    status: Literal['deactivated'] | None = None
 
 
-api = APIRouter(tags=["acme:authorization"])
+api = APIRouter(tags=['acme:authorization'])
 
 
-@api.post("/authorizations/{authz_id}")
+@api.post('/authorizations/{authz_id}')
 async def view_or_update_authorization(
     authz_id: str,
     data: Annotated[
@@ -48,10 +48,10 @@ async def view_or_update_authorization(
             chal_status,
             chal_validated_at,
         ) = record
-        if data.payload and data.payload.status == "deactivated":  # deactivate authz
-            if authz_status in ["pending", "valid"] and order_status in [
-                "pending",
-                "ready",
+        if data.payload and data.payload.status == 'deactivated':  # deactivate authz
+            if authz_status in ['pending', 'valid'] and order_status in [
+                'pending',
+                'ready',
             ]:
                 async with db.transaction() as sql:
                     await sql.exec(
@@ -66,33 +66,33 @@ async def view_or_update_authorization(
                         authz_id,
                     )
         chal = {
-            "type": "http-01",
-            "url": f"{settings.external_url}acme/challenges/{chal_id}",
-            "token": chal_token,
-            "status": chal_status,
-            "validated": chal_validated_at,
+            'type': 'http-01',
+            'url': f'{settings.external_url}acme/challenges/{chal_id}',
+            'token': chal_token,
+            'status': chal_status,
+            'validated': chal_validated_at,
         }
 
         return {
-            "status": authz_status,
-            "expires": expires_at,
-            "identifier": {"type": "dns", "value": domain},
-            "challenges": [{k: v for k, v in chal.items() if v is not None}],
+            'status': authz_status,
+            'expires': expires_at,
+            'identifier': {'type': 'dns', 'value': domain},
+            'challenges': [{k: v for k, v in chal.items() if v is not None}],
         }
     else:
         raise ACMEException(
             status_code=status.HTTP_404_NOT_FOUND,
-            exctype="malformed",
-            detail="specified authorization not found for current account",
+            exctype='malformed',
+            detail='specified authorization not found for current account',
             new_nonce=data.new_nonce,
         )
 
 
-@api.post("/new-authz")
+@api.post('/new-authz')
 async def new_pre_authz(data: Annotated[RequestData, Depends(SignedRequest())]):
     raise ACMEException(
         status_code=status.HTTP_403_FORBIDDEN,
-        exctype="unauthorized",
-        detail="pre authorization is not supported",
+        exctype='unauthorized',
+        detail='pre authorization is not supported',
         new_nonce=data.new_nonce,
     )
