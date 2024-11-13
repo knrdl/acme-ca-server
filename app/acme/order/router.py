@@ -90,7 +90,7 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
 
 
 @api.post('/orders/{order_id}')
-async def view_order(order_id: str, data: Annotated[RequestData, Depends(SignedRequest())]):
+async def view_order(response: Response, order_id: str, data: Annotated[RequestData, Depends(SignedRequest())]):
     async with db.transaction(readonly=True) as sql:
         record = await sql.record("""
             select status, expires_at, error from orders where id = $1 and account_id = $2
@@ -106,6 +106,8 @@ async def view_order(order_id: str, data: Annotated[RequestData, Depends(SignedR
         acme_error = ACMEException(exctype=err.get('type'), detail=err.get('detail'), new_nonce=data.new_nonce)
     else:
         acme_error = None
+
+    response.headers['Location'] = f'{settings.external_url}acme/orders/{order_id}'  # see #139
     return order_response(
         status=order_status,
         expires_at=expires_at,
@@ -120,7 +122,7 @@ async def view_order(order_id: str, data: Annotated[RequestData, Depends(SignedR
 
 
 @api.post('/orders/{order_id}/finalize')
-async def finalize_order(order_id: str, data: Annotated[RequestData[FinalizeOrderPayload], Depends(SignedRequest(FinalizeOrderPayload))]):
+async def finalize_order(response: Response, order_id: str, data: Annotated[RequestData[FinalizeOrderPayload], Depends(SignedRequest(FinalizeOrderPayload))]):
     async with db.transaction(readonly=True) as sql:
         record = await sql.record("""
             select status, expires_at, expires_at <= now() as is_expired from orders ord
@@ -180,6 +182,7 @@ async def finalize_order(order_id: str, data: Annotated[RequestData[FinalizeOrde
                 update orders set status='invalid', error=row($2,$3) where id = $1 returning status
             """, order_id, err.exc_type, err.detail)
 
+    response.headers['Location'] = f'{settings.external_url}acme/orders/{order_id}'  # see #139
     return order_response(
         status=order_status, expires_at=expires_at, domains=domains, authz_ids=authz_ids, order_id=order_id,
         not_valid_before=not_valid_before, not_valid_after=not_valid_after, cert_serial_number=cert_sn, error=err
