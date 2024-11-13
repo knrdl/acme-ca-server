@@ -14,10 +14,12 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
             async with httpx.AsyncClient(
                 timeout=10,
                 # only http 1.0/1.1 is required, not https
-                verify=False, http1=True, http2=False,  # noqa: S501 (https is intentionally disabled)
+                verify=False,  # noqa: S501 (https is intentionally disabled)
+                http1=True,
+                http2=False,
                 # todo: redirects are forbidden for now, but RFC states redirects should be supported
                 follow_redirects=False,
-                trust_env=False  # do not load proxy information from env vars
+                trust_env=False,  # do not load proxy information from env vars
             ) as client:
                 res = await client.get(f'http://{domain}:80/.well-known/acme-challenge/{token}')
                 if res.status_code == 200 and res.text.rstrip() == f'{token}.{jwk.thumbprint()}':
@@ -27,7 +29,7 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
                         status_code=status.HTTP_400_BAD_REQUEST,
                         exctype='incorrectResponse',
                         detail='presented token does not match challenge',
-                        new_nonce=new_nonce
+                        new_nonce=new_nonce,
                     )
         except httpx.ConnectTimeout:
             err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='connection', detail='timeout', new_nonce=new_nonce)

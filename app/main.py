@@ -31,17 +31,24 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    lifespan=lifespan, version=__version__, redoc_url=None, docs_url=None,
-    title=settings.web.app_title, description=settings.web.app_description)
+    lifespan=lifespan,
+    version=__version__,
+    redoc_url=None,
+    docs_url=None,
+    title=settings.web.app_title,
+    description=settings.web.app_description,
+)
 app.add_middleware(
     web.middleware.SecurityHeadersMiddleware,
     content_security_policy={
         '/acme/': "base-uri 'self'; default-src 'none';",
         '/endpoints': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-src 'none'; img-src 'self' data:;",
-        '/': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'none'; img-src 'self' data:;"
-    })
+        '/': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'none'; img-src 'self' data:;",
+    },
+)
 
 if settings.web.enabled:
+
     @app.get('/endpoints', tags=['web'])
     async def swagger_ui_html():
         return get_swagger_ui_html(
@@ -49,7 +56,7 @@ if settings.web.enabled:
             title=app.title,
             swagger_favicon_url='favicon.png',
             swagger_css_url='libs/swagger-ui.css',
-            swagger_js_url='libs/swagger-ui-bundle.js'
+            swagger_js_url='libs/swagger-ui-bundle.js',
         )
 
 

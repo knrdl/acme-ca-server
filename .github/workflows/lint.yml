@@ -46,4 +46,4 @@ jobs:
           python -m flake8 --max-line-length 179 --ignore=F722,B008,I001,I004,I005 .
           pylint --max-line-length=179 --recursive=yes --disable=too-many-branches,no-else-return,broad-exception-caught,missing-module-docstring,missing-class-docstring,missing-function-docstring .
           ruff check .
-
+          ruff format --check .

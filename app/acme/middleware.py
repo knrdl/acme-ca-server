@@ -57,8 +57,13 @@ class Protected(BaseModel):
 
 
 class SignedRequest:  # pylint: disable=too-few-public-methods
-    def __init__(self, payload_model: BaseModel = None, *,
-                 allow_new_account: bool = False, allow_blocked_account: bool = False):
+    def __init__(
+        self,
+        payload_model: BaseModel = None,
+        *,
+        allow_new_account: bool = False,
+        allow_blocked_account: bool = False,
+    ):
         self.allow_new_account = allow_new_account
         self.allow_blocked_account = allow_blocked_account
         self.payload_model = payload_model
@@ -72,9 +77,13 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         return url
 
     async def __call__(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
-        self, request: Request, response: Response,
+        self,
+        request: Request,
+        response: Response,
         content_type: str = Header(..., pattern=r'^application/jose\+json$', description='Content Type must be "application/jose+json"'),
-        protected: constr(min_length=1) = Body(...), signature: constr(min_length=1) = Body(...), payload: constr(min_length=0) = Body(...)
+        protected: constr(min_length=1) = Body(...),
+        signature: constr(min_length=1) = Body(...),
+        payload: constr(min_length=0) = Body(...),
     ):
         protected_data = Protected(**json.loads(base64url_decode(protected)))
 
@@ -91,9 +100,9 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
             if account_id:
                 async with db.transaction(readonly=True) as sql:
                     if self.allow_blocked_account:
-                        key_data = await sql.value('select jwk from accounts where id = $1', account_id)
+                        key_data = await sql.value("""select jwk from accounts where id = $1""", account_id)
                     else:
-                        key_data = await sql.value("select jwk from accounts where id = $1 and status = 'valid'", account_id)
+                        key_data = await sql.value("""select jwk from accounts where id = $1 and status = 'valid'""", account_id)
             else:
                 key_data = None
             if not key_data:
