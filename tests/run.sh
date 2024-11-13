@@ -45,6 +45,8 @@ curl --fail --silent localhost:8080/endpoints > /dev/null
 
 # certbot
 
+echo "Running certbot instances"
+
 rm -rf certbot
 mkdir certbot
 

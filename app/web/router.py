@@ -5,11 +5,13 @@ from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 from pydantic import constr
 
+from app.constants import WEB_TEMPLATES_PATH
+
 from .. import db
 from ..config import settings
 
 template_engine = Environment(
-    loader=FileSystemLoader('web/templates'), enable_async=True, autoescape=True
+    loader=FileSystemLoader(WEB_TEMPLATES_PATH), enable_async=True, autoescape=True
 )
 
 default_params = {
