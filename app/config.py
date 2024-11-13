@@ -37,13 +37,11 @@ class CaSettings(BaseSettings):
                 sys.exit(1)
             if self.cert_lifetime.days < 1:
                 raise ValueError(
-                    'Cert lifetime for internal CA must be at least one day, not: '
-                    + str(self.cert_lifetime)
+                    f'Cert lifetime for internal CA must be at least one day, not: {str(self.cert_lifetime)}'
                 )
             if self.crl_lifetime.days < 1:
                 raise ValueError(
-                    'CRL lifetime for internal CA must be at least one day, not: '
-                    + str(self.crl_lifetime)
+                    f'CRL lifetime for internal CA must be at least one day, not: {str(self.crl_lifetime)}'
                 )
         return self
 

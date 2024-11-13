@@ -16,7 +16,7 @@ async def check_challenge_is_fulfilled(
             async with httpx.AsyncClient(
                 timeout=10,
                 # only http 1.0/1.1 is required, not https
-                verify=False,
+                verify=False,  # noqa: S501 (https is intentionally disabled)
                 http1=True,
                 http2=False,  # noqa: S501 (https is intentionally disabled)
                 # todo: redirects are forbidden for now, but RFC states redirects should be supported
@@ -30,8 +30,7 @@ async def check_challenge_is_fulfilled(
                 expected_text_content = f'{token}.{jwk.thumbprint()}'
 
                 if (
-                    res.status_code == 200
-                    and actual_text_content == expected_text_content
+                    res.status_code == 200 and actual_text_content == expected_text_content
                 ):
                     err = False
                 else:

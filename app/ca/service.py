@@ -26,9 +26,9 @@ async def sign_csr(
     san_domains: the alternative (additional) requested domain names
     """
     if not settings.ca.enabled:
-        raise Exception(
+        raise Exception( # pylint: disable=broad-exception-raised
             'internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation'
-        )  # pylint: disable=broad-exception-raised
+        )
 
     ca_cert, ca_key = await load_active_ca()
 
@@ -45,12 +45,12 @@ async def sign_csr(
 
 
 async def revoke_cert(
-    serial_number: str, revocations: set[tuple[str, datetime]]
-) -> None:  # pylint: disable=unused-argument
+    serial_number: str, revocations: set[tuple[str, datetime]]  # pylint: disable=unused-argument
+) -> None:
     if not settings.ca.enabled:
-        raise Exception(
+        raise Exception(  # pylint: disable=broad-exception-raised
             'internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation'
-        )  # pylint: disable=broad-exception-raised
+        )
     ca_cert, ca_key = await load_active_ca()
     _, crl_pem = await asyncio.to_thread(
         build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations
@@ -105,8 +105,7 @@ def generate_cert_sync(
                     x509.DistributionPoint(
                         full_name=[
                             x509.UniformResourceIdentifier(
-                                str(settings.external_url).removesuffix('/')
-                                + f'/ca/{ca_id}/crl'
+                                str(settings.external_url).removesuffix('/') + f'/ca/{ca_id}/crl'
                             )
                         ],
                         relative_name=None,

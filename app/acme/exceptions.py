@@ -65,9 +65,7 @@ class ACMEException(Exception):
 
     async def as_response(self):
         if not self.new_nonce:
-            from .nonce.service import (
-                generate as generate_nonce,
-            )  # import here to prevent circular import  # pylint: disable=import-outside-toplevel
+            from .nonce.service import generate as generate_nonce  # import here to prevent circular import  # pylint: disable=import-outside-toplevel
 
             self.new_nonce = await generate_nonce()
         return JSONResponse(
