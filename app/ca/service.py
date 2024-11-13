@@ -26,7 +26,7 @@ async def sign_csr(
     san_domains: the alternative (additional) requested domain names
     """
     if not settings.ca.enabled:
-        raise Exception( # pylint: disable=broad-exception-raised
+        raise Exception(  # pylint: disable=broad-exception-raised
             'internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation'
         )
 
