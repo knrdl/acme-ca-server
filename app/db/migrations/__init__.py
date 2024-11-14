@@ -18,7 +18,7 @@ async def run():
         dirty = False
 
         while True:
-            cur_level = await sql.value('select migration from migrations')
+            cur_level = await sql.value("""select migration from migrations""")
             next_level = cur_level + 1
 
             # These paths dont' work for testing. Let's define an absolute path
@@ -29,7 +29,7 @@ async def run():
             logger.info('Running migration: %s', next_file.name)
             with open(next_file, encoding='utf-8') as f:
                 await sql.exec(f.read())
-            await sql.exec('update migrations set migration=$1', next_level)
+            await sql.exec("""update migrations set migration=$1""", next_level)
             dirty = True
         if dirty:
             logger.info(

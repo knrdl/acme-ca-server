@@ -51,7 +51,6 @@ app.add_middleware(
     },
 )
 
-
 if settings.web.enabled:
 
     @app.get('/endpoints', tags=['web'])

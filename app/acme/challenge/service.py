@@ -18,7 +18,7 @@ async def check_challenge_is_fulfilled(
                 # only http 1.0/1.1 is required, not https
                 verify=False,  # noqa: S501 (https is intentionally disabled)
                 http1=True,
-                http2=False,  # noqa: S501 (https is intentionally disabled)
+                http2=False,
                 # todo: redirects are forbidden for now, but RFC states redirects should be supported
                 follow_redirects=False,
                 trust_env=False,  # do not load proxy information from env vars

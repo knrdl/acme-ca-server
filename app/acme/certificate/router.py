@@ -20,19 +20,13 @@ class RevokeCertPayload(BaseModel):
 api = APIRouter(tags=['acme:certificate'])
 
 
-@api.post(
-    '/certificates/{serial_number}',
-    response_class=Response,
-    responses={200: {'content': {'application/pem-certificate-chain': {}}}},
-)
+@api.post('/certificates/{serial_number}', response_class=Response, responses={200: {'content': {'application/pem-certificate-chain': {}}}})
 async def download_cert(
     response: Response,
     serial_number: constr(pattern='^[0-9A-F]+$'),
     data: Annotated[RequestData, Depends(SignedRequest())],
     accept: str = Header(
-        default='*/*',
-        pattern=r'(application/pem\-certificate\-chain|\*/\*)',
-        description='Certificates are only supported as "application/pem-certificate-chain"',
+        default='*/*', pattern=r'(application/pem\-certificate\-chain|\*/\*)', description='Certificates are only supported as "application/pem-certificate-chain"'
     ),
 ):
     async with db.transaction(readonly=True) as sql:
@@ -41,7 +35,7 @@ async def download_cert(
             select cert.chain_pem from certificates cert
             join orders ord on cert.order_id = ord.id
             where cert.serial_number = $1 and ord.account_id = $2
-        """,
+            """,
             serial_number,
             data.account_id,
         )
@@ -83,7 +77,7 @@ async def revoke_cert(
             where
                 c.serial_number = $1 and c.revoked_at is null and
                 ($2::text is null or (a.id = $2::text and a.status='valid')) and a.jwk=$3
-        """,
+            """,
             serial_number,
             data.account_id,
             jwk_json,
@@ -96,21 +90,14 @@ async def revoke_cert(
             new_nonce=data.new_nonce,
         )
     async with db.transaction(readonly=True) as sql:
-        revocations = [
-            (sn, rev_at)
-            async for sn, rev_at in sql(
-                'select serial_number, revoked_at from certificates where revoked_at is not null'
-            )
-        ]
-        revoked_at = await sql.value('select now()')
+        revocations = [(sn, rev_at) async for sn, rev_at in sql("""select serial_number, revoked_at from certificates where revoked_at is not null""")]
+        revoked_at = await sql.value("""select now()""")
     revocations = set(revocations)
     revocations.add((serial_number, revoked_at))
     await ca_service.revoke_cert(serial_number=serial_number, revocations=revocations)
     async with db.transaction() as sql:
         await sql.exec(
-            """
-            update certificates set revoked_at = $2 where serial_number = $1 and revoked_at is null
-        """,
+            """update certificates set revoked_at = $2 where serial_number = $1 and revoked_at is null""",
             serial_number,
             revoked_at,
         )

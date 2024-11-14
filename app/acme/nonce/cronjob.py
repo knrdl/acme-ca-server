@@ -9,7 +9,7 @@ async def start():
         while True:
             try:
                 async with db.transaction() as sql:
-                    await sql.exec('delete from nonces where expires_at < now()')
+                    await sql.exec("""delete from nonces where expires_at < now()""")
             except Exception:
                 logger.error('could not purge old nonces', exc_info=True)
             finally:

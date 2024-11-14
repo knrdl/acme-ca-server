@@ -30,10 +30,7 @@ class CaSettings(BaseSettings):
             if not self.encryption_key:
                 from cryptography.fernet import Fernet  # pylint: disable=import-outside-toplevel
 
-                logger.fatal(
-                    'Env Var ca_encryption_key is missing, use this freshly generated key: %s',
-                    Fernet.generate_key().decode(),
-                )
+                logger.fatal('Env Var ca_encryption_key is missing, use this freshly generated key: %s', Fernet.generate_key().decode())
                 sys.exit(1)
             if self.cert_lifetime.days < 1:
                 raise ValueError(

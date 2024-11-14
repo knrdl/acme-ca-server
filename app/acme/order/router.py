@@ -56,24 +56,15 @@ def order_response(
         'error': error.value if error else None,
         'notBefore': not_valid_before,
         'notAfter': not_valid_after,
-        'certificate': f'{settings.external_url}acme/certificates/{cert_serial_number}'
-        if cert_serial_number
-        else None,
+        'certificate': f'{settings.external_url}acme/certificates/{cert_serial_number}' if cert_serial_number else None,
     }
 
 
 api = APIRouter(tags=['acme:order'])
 
 
-@api.post('/new-order', status_code=201)
-async def submit_order(
-    response: Response,
-    data: Annotated[
-        RequestData[NewOrderPayload], Depends(SignedRequest(NewOrderPayload))
-    ],
-):
-    # In here, a challenge is getting created with a random token
-
+@api.post('/new-order', status_code=status.HTTP_201_CREATED)
+async def submit_order(response: Response, data: Annotated[RequestData[NewOrderPayload], Depends(SignedRequest(NewOrderPayload))]):
     if data.payload.notBefore is not None or data.payload.notAfter is not None:
         raise ACMEException(
             exctype='malformed',
@@ -97,10 +88,7 @@ async def submit_order(
 
     async with db.transaction() as sql:
         order_status, expires_at = await sql.record(
-            """
-            insert into orders (id, account_id) values ($1, $2)
-            returning status, expires_at
-        """,
+            """insert into orders (id, account_id) values ($1, $2) returning status, expires_at""",
             order_id,
             data.account_id,
         )
@@ -110,10 +98,7 @@ async def submit_order(
         )
         await sql.execmany(
             """insert into challenges (id, authz_id, token) values ($1, $2, $3)""",
-            *[
-                (chal_ids[domain], authz_ids[domain], chal_tkns[domain])
-                for domain in domains
-            ],
+            *[(chal_ids[domain], authz_ids[domain], chal_tkns[domain]) for domain in domains],
         )
 
     response.headers['Location'] = f'{settings.external_url}acme/orders/{order_id}'
@@ -127,14 +112,10 @@ async def submit_order(
 
 
 @api.post('/orders/{order_id}')
-async def view_order(
-    order_id: str, data: Annotated[RequestData, Depends(SignedRequest())]
-):
+async def view_order(response: Response, order_id: str, data: Annotated[RequestData, Depends(SignedRequest())]):
     async with db.transaction(readonly=True) as sql:
         record = await sql.record(
-            """
-            select status, expires_at, error from orders where id = $1 and account_id = $2
-        """,
+            """select status, expires_at, error from orders where id = $1 and account_id = $2""",
             order_id,
             data.account_id,
         )
@@ -146,16 +127,8 @@ async def view_order(
                 new_nonce=data.new_nonce,
             )
         order_status, expires_at, err = record
-        authzs = [
-            row
-            async for row in sql(
-                'select id, domain from authorizations where order_id = $1', order_id
-            )
-        ]
-        cert_record = await sql.record(
-            'select serial_number, not_valid_before, not_valid_after from certificates where order_id = $1',
-            order_id,
-        )
+        authzs = [row async for row in sql("""select id, domain from authorizations where order_id = $1""", order_id)]
+        cert_record = await sql.record("""select serial_number, not_valid_before, not_valid_after from certificates where order_id = $1""", order_id)
     if cert_record:
         cert_sn, not_valid_before, not_valid_after = cert_record
     if err:
@@ -164,6 +137,8 @@ async def view_order(
         )
     else:
         acme_error = None
+
+    response.headers['Location'] = f'{settings.external_url}acme/orders/{order_id}'  # see #139
     return order_response(
         status=order_status,
         expires_at=expires_at,
@@ -178,18 +153,13 @@ async def view_order(
 
 
 @api.post('/orders/{order_id}/finalize')
-async def finalize_order(
-    order_id: str,
-    data: Annotated[
-        RequestData[FinalizeOrderPayload], Depends(SignedRequest(FinalizeOrderPayload))
-    ],
-):
+async def finalize_order(response: Response, order_id: str, data: Annotated[RequestData[FinalizeOrderPayload], Depends(SignedRequest(FinalizeOrderPayload))]):
     async with db.transaction(readonly=True) as sql:
         record = await sql.record(
             """
             select status, expires_at, expires_at <= now() as is_expired from orders ord
             where ord.id = $1 and ord.account_id = $2
-        """,
+            """,
             order_id,
             data.account_id,
         )
@@ -212,37 +182,19 @@ async def finalize_order(
         async with db.transaction() as sql:
             await sql.exec(
                 """
-                update orders set status='invalid', error=row('unauthorized','order expired') where id = $1 and status <> 'invalid'
-            """,
+                update orders set status='invalid', error=row('unauthorized','order expired')
+                where id = $1 and status <> 'invalid'
+                """,
                 order_id,
             )
-            await sql.exec(
-                "update authorizations set status='expired' where order_id = $1",
-                order_id,
-            )
-        raise ACMEException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            exctype='orderNotReady',
-            detail='order expired',
-            new_nonce=data.new_nonce,
-        )
+            await sql.exec("""update authorizations set status='expired' where order_id = $1""", order_id)
+        raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, exctype='orderNotReady', detail='order expired', new_nonce=data.new_nonce)
     else:
         async with db.transaction() as sql:
-            await sql.exec(
-                "update orders set status='processing' where id = $1 and status = 'ready'",
-                order_id,
-            )
+            await sql.exec("""update orders set status='processing' where id = $1 and status = 'ready'""", order_id)
 
     async with db.transaction(readonly=True) as sql:
-        records = [
-            (authz_id, domain)
-            async for authz_id, domain, *_ in sql(
-                """
-            select id, domain from authorizations where order_id = $1 and status = 'valid'
-        """,
-                order_id,
-            )
-        ]
+        records = [(authz_id, domain) async for authz_id, domain, *_ in sql("""select id, domain from authorizations where order_id = $1 and status = 'valid'""", order_id)]
     domains = [domain for authz_id, domain in records]
     authz_ids = [authz_id for authz_id, domain in records]
 
@@ -274,7 +226,7 @@ async def finalize_order(
                 """
                 insert into certificates (serial_number, csr_pem, chain_pem, order_id, not_valid_before, not_valid_after)
                 values ($1, $2, $3, $4, $5, $6) returning not_valid_before, not_valid_after
-            """,
+                """,
                 cert_sn,
                 csr_pem,
                 signed_cert.cert_chain_pem,
@@ -285,21 +237,20 @@ async def finalize_order(
             order_status = await sql.value(
                 """
                 update orders set status='valid' where id = $1 and status='processing' returning status
-            """,
+                """,
                 order_id,
             )
     else:
         cert_sn = not_valid_before = not_valid_after = None
         async with db.transaction() as sql:
             order_status = await sql.value(
-                """
-                update orders set status='invalid', error=row($2,$3) where id = $1 returning status
-            """,
+                """update orders set status='invalid', error=row($2,$3) where id = $1 returning status""",
                 order_id,
                 err.exc_type,
                 err.detail,
             )
 
+    response.headers['Location'] = f'{settings.external_url}acme/orders/{order_id}'  # see #139
     return order_response(
         status=order_status,
         expires_at=expires_at,

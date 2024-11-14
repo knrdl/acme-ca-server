@@ -8,10 +8,8 @@ from jinja2 import Environment, FileSystemLoader
 from ..config import settings
 from ..logger import logger
 
-template_engine = Environment(
-    loader=FileSystemLoader('mail/templates'), enable_async=True, autoescape=True
-)
-default_params = {
+template_engine = Environment(loader=FileSystemLoader('mail/templates'), enable_async=True, autoescape=True)
+default_params = {  # pylint: disable=duplicate-code
     'app_title': settings.web.app_title,
     'app_desc': settings.web.app_description,
     'web_url': str(settings.external_url),
@@ -31,12 +29,8 @@ async def send_mail(
     subject_vars.update(**default_params)
     body_vars = body_vars or {}
     body_vars.update(**default_params)
-    subject_job = template_engine.get_template(template + '/subject.txt').render_async(
-        subject_vars
-    )
-    body_job = template_engine.get_template(template + '/body.html').render_async(
-        body_vars
-    )
+    subject_job = template_engine.get_template(template + '/subject.txt').render_async(subject_vars)
+    body_job = template_engine.get_template(template + '/body.html').render_async(body_vars)
     message = MIMEText(await body_job, 'html', 'utf-8')
     message['From'] = settings.mail.sender
     message['To'] = receiver
@@ -64,9 +58,7 @@ async def send_new_account_info_mail(receiver: str):
     await send_mail(receiver, 'new-account-info')
 
 
-async def send_certs_will_expire_warn_mail(
-    *, receiver: str, domains: list[str], expires_at: datetime, serial_number: str
-):
+async def send_certs_will_expire_warn_mail(*, receiver: str, domains: list[str], expires_at: datetime, serial_number: str):
     await send_mail(
         receiver,
         'cert-expires-warning',
@@ -74,16 +66,12 @@ async def send_certs_will_expire_warn_mail(
             'domains': domains,
             'expires_at': expires_at,
             'serial_number': serial_number,
-            'expires_in_days': (
-                expires_at.replace(tzinfo=None) - datetime.utcnow()
-            ).days,
+            'expires_in_days': (expires_at.replace(tzinfo=None) - datetime.utcnow()).days,
         },
     )
 
 
-async def send_certs_expired_info_mail(
-    *, receiver: str, domains: list[str], expires_at: datetime, serial_number: str
-):
+async def send_certs_expired_info_mail(*, receiver: str, domains: list[str], expires_at: datetime, serial_number: str):
     await send_mail(
         receiver,
         'cert-expired-info',

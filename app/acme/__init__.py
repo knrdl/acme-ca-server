@@ -18,9 +18,7 @@ from .order import router as order_router
 class ACMEResponse(JSONResponse):
     def render(self, content: dict[str, Any] | None) -> bytes:
         return super().render(  # remove null fields from responses
-            {k: v for k, v in content.items() if v is not None}
-            if content is not None
-            else None
+            {k: v for k, v in content.items() if v is not None} if content is not None else None
         )
 
 
@@ -35,4 +33,7 @@ router.include_router(order_router.api)
 
 
 async def start_cronjobs():
-    await asyncio.gather(certificate_cronjob.start(), nonce_cronjob.start())
+    await asyncio.gather(
+        certificate_cronjob.start(),
+        nonce_cronjob.start(),
+    )

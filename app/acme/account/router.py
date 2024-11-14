@@ -15,11 +15,7 @@ from ..middleware import RequestData, SignedRequest
 
 tosAgreedType = Literal[True] if settings.acme.terms_of_service_url else (bool | None)
 contactType = conlist(
-    constr(
-        strip_whitespace=True,
-        to_lower=True,
-        pattern=f'^mailto:{settings.acme.mail_target_regex.pattern}$',
-    ),
+    constr(strip_whitespace=True, to_lower=True, pattern=f'^mailto:{settings.acme.mail_target_regex.pattern}$'),
     min_length=1,
     max_length=1,
 )
@@ -59,10 +55,7 @@ api = APIRouter(tags=['acme:account'])
 @api.post('/new-account')
 async def create_or_view_account(
     response: Response,
-    data: Annotated[
-        RequestData[NewOrViewAccountPayload],
-        Depends(SignedRequest(NewOrViewAccountPayload, allow_new_account=True)),
-    ],
+    data: Annotated[RequestData[NewOrViewAccountPayload], Depends(SignedRequest(NewOrViewAccountPayload, allow_new_account=True))],
 ):
     """
     https://www.rfc-editor.org/rfc/rfc8555.html#section-7.3
@@ -70,11 +63,7 @@ async def create_or_view_account(
     jwk_json: dict = data.key.export(as_dict=True)
 
     async with db.transaction() as sql:
-        result = await sql.record(
-            'select id, mail, status from accounts where jwk=$1 and (id=$2 or $2::text is null)',
-            jwk_json,
-            data.account_id,
-        )
+        result = await sql.record("""select id, mail, status from accounts where jwk=$1 and (id=$2 or $2::text is null)""", jwk_json, data.account_id)
     account_exists = bool(result)
 
     if account_exists:
@@ -98,10 +87,7 @@ async def create_or_view_account(
             account_id = secrets.token_urlsafe(16)
             async with db.transaction() as sql:
                 account_status = await sql.value(
-                    """
-                    insert into accounts (id, mail, jwk) values ($1, $2, $3)
-                    returning status
-                """,
+                    """insert into accounts (id, mail, jwk) values ($1, $2, $3) returning status""",
                     account_id,
                     mail_addr,
                     jwk_json,
@@ -135,10 +121,7 @@ async def change_key(data: Annotated[RequestData, Depends(SignedRequest())]):
 @api.post('/accounts/{acc_id}')
 async def view_or_update_account(
     acc_id: str,
-    data: Annotated[
-        RequestData[UpdateAccountPayload],
-        Depends(SignedRequest(UpdateAccountPayload, allow_blocked_account=True)),
-    ],
+    data: Annotated[RequestData[UpdateAccountPayload], Depends(SignedRequest(UpdateAccountPayload, allow_blocked_account=True))],
 ):
     if acc_id != data.account_id:
         raise ACMEException(
@@ -150,11 +133,7 @@ async def view_or_update_account(
 
     if data.payload.contact:
         async with db.transaction() as sql:
-            await sql.exec(
-                "update accounts set mail=$1 where id = $2 and status = 'valid'",
-                data.payload.mail_addr,
-                acc_id,
-            )
+            await sql.exec("""update accounts set mail=$1 where id = $2 and status = 'valid'""", data.payload.mail_addr, acc_id)
         try:
             await mail.send_new_account_info_mail(data.payload.mail_addr)
         except Exception:
@@ -168,20 +147,17 @@ async def view_or_update_account(
         data.payload.status == 'deactivated'
     ):  # https://www.rfc-editor.org/rfc/rfc8555#section-7.3.6
         async with db.transaction() as sql:
-            await sql.exec(
-                "update accounts set status='deactivated' where id = $1", acc_id
-            )
+            await sql.exec("""update accounts set status='deactivated' where id = $1""", acc_id)
             await sql.exec(
                 """
-                update orders set status='invalid', error=row('unauthorized','account deactived') where account_id = $1 and status <> 'invalid'
-            """,
+                update orders set status='invalid', error=row('unauthorized','account deactived')
+                where account_id = $1 and status <> 'invalid'
+                """,
                 acc_id,
             )
 
     async with db.transaction(readonly=True) as sql:
-        account_status, mail_addr = await sql.record(
-            'select status, mail from accounts where id = $1', acc_id
-        )
+        account_status, mail_addr = await sql.record("""select status, mail from accounts where id = $1""", acc_id)
 
     return {
         'status': account_status,
@@ -202,15 +178,7 @@ async def view_orders(
             new_nonce=data.new_nonce,
         )
     async with db.transaction(readonly=True) as sql:
-        orders = [
-            order_id
-            async for order_id, *_ in sql(
-                "select id from orders where account_id = $1 and status <> 'invalid'",
-                acc_id,
-            )
-        ]
+        orders = [order_id async for order_id, *_ in sql("""select id from orders where account_id = $1 and status <> 'invalid'""", acc_id)]
     return {
-        'orders': [
-            f'{settings.external_url}acme/orders/{order_id}' for order_id in orders
-        ]
+        'orders': [f'{settings.external_url}acme/orders/{order_id}' for order_id in orders],
     }

@@ -34,9 +34,7 @@ async def check_csr(
             new_nonce=new_nonce,
         )
 
-    sans = csr.extensions.get_extension_for_oid(
-        x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
-    ).value.get_values_for_type(x509.DNSName)
+    sans = csr.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value.get_values_for_type(x509.DNSName)
     csr_domains = set(sans)
     subject_candidates = csr.subject.get_attributes_for_oid(
         x509.oid.NameOID.COMMON_NAME

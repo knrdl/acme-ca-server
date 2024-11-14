@@ -27,7 +27,7 @@ async def verify_challenge(
             join authorizations authz on authz.id = chal.authz_id
             join orders ord on authz.order_id = ord.id
             where chal.id = $1 and ord.account_id = $2 and ord.expires_at > now()
-        """,
+            """,
             chal_id,
             data.account_id,
         )
@@ -50,14 +50,12 @@ async def verify_challenge(
             order_status,
         ) = record
         if order_status == 'invalid':
-            await sql.exec(
-                """update authorizations set status = 'invalid' where id = $1""",
-                authz_id,
-            )
+            await sql.exec("""update authorizations set status = 'invalid' where id = $1""", authz_id)
             await sql.value(
                 """
-                update challenges set status = 'invalid', error=row('unauthorized','order failed') where id = $1 and status <> 'invalid'
-            """,
+                update challenges set status = 'invalid', error=row('unauthorized','order failed')
+                where id = $1 and status <> 'invalid'
+                """,
                 chal_id,
             )
             chal_status = 'invalid'
@@ -71,8 +69,9 @@ async def verify_challenge(
             else:
                 await sql.value(
                     """
-                    update challenges set status='invalid', error=row('unauthorized','authorization failed') where id = $1 and status <> 'invalid'
-                """,
+                    update challenges set status='invalid', error=row('unauthorized','authorization failed')
+                    where id = $1 and status <> 'invalid'
+                    """,
                     chal_id,
                 )
                 chal_status = 'invalid'
@@ -117,41 +116,32 @@ async def verify_challenge(
                     """
                     update challenges set validated_at=now(), status = 'valid'
                     where id = $1 and status='processing' returning status, validated_at
-                """,
+                    """,
                     chal_id,
                 )
                 await sql.exec(
-                    """
-                    update authorizations set status = 'valid' where id = $1 and status = 'pending'
-                """,
+                    """update authorizations set status = 'valid' where id = $1 and status = 'pending'""",
                     authz_id,
                 )
                 await sql.exec(
                     """
                     update orders set status='ready' where id = $1 and status='pending' and
                     (select count(id) from authorizations where order_id = $1 and status <> 'valid') = 0
-                """,
+                    """,
                     order_id,
                 )  # set order to ready if all authzs are valid
         else:
             acme_error = err
             async with db.transaction() as sql:
                 chal_status = await sql.value(
-                    """
-                    update challenges set status = 'invalid', error=row($2,$3) where id = $1 returning status
-                """,
+                    """update challenges set status = 'invalid', error=row($2,$3) where id = $1 returning status""",
                     chal_id,
                     err.exc_type,
                     err.detail,
                 )
+                await sql.exec("""update authorizations set status = 'invalid' where id = $1""", authz_id)
                 await sql.exec(
-                    "update authorizations set status = 'invalid' where id = $1",
-                    authz_id,
-                )
-                await sql.exec(
-                    """
-                    update orders set status = 'invalid', error=row('unauthorized', 'challenge failed') where id = $1
-                """,
+                    """update orders set status = 'invalid', error=row('unauthorized', 'challenge failed') where id = $1""",
                     order_id,
                 )
 
