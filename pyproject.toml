@@ -16,7 +16,6 @@ Documentation = "https://github.com/knrdl/acme-ca-server"
 Repository = "https://github.com/knrdl/acme-ca-server.git"
 Issues = "https://github.com/knrdl/acme-ca-server/issues"
 
-
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 

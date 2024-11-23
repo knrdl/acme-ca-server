@@ -19,7 +19,15 @@ def testclient() -> TestClient:
     subprocess.call(['openssl', 'genrsa', '-out', ca_dir / 'ca.key', '4096'])
     subprocess.call(['openssl', 'req', '-new', '-x509', '-nodes', '-days', '3650', '-subj', '/C=DE/O=Demo', '-key', ca_dir / 'ca.key', '-out', ca_dir / 'ca.pem'])
 
-    from main import app
 
-    with TestClient(app) as tc:
+    async def noop():
+        pass
+
+    import main
+
+    # cronjobs are disabled because they would keep the test run going even if all tests are done
+    main.ca.cronjob.start = noop
+    main.acme.start_cronjobs = noop
+
+    with TestClient(main.app) as tc:
         yield tc
