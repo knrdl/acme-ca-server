@@ -26,6 +26,14 @@ max-line-length = 179
 recursive = 'yes'
 disable = 'too-many-branches,no-else-return,broad-exception-caught,missing-module-docstring,missing-class-docstring,missing-function-docstring'
 
+[tool.pytest.ini_options]
+pythonpath = "app"
+testpaths = [
+    "tests/pytest/",
+]
+addopts = [
+    "--import-mode=importlib",
+]
 
 [tool.ruff]
 line-length = 179
