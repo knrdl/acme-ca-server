@@ -1,5 +1,4 @@
 import asyncio
-from pathlib import Path
 
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
@@ -26,14 +25,14 @@ if settings.ca.enabled:
         return Response(content=crl_pem, media_type='application/pkix-crl')
 
     async def init():
-        if Path('/import/ca.pem').is_file() and Path('/import/ca.key').is_file():
-            with open('/import/ca.key', 'rb') as f:
+        if (settings.ca.import_dir / 'ca.pem').is_file() and (settings.ca.import_dir / 'ca.key').is_file():
+            with open(settings.ca.import_dir / 'ca.key', 'rb') as f:
                 ca_key_bytes = f.read()
             ca_key = serialization.load_pem_private_key(ca_key_bytes, None)
             f = Fernet(settings.ca.encryption_key.get_secret_value())
             ca_key_enc = f.encrypt(ca_key_bytes)
 
-            with open('/import/ca.pem', 'rb') as f:
+            with open(settings.ca.import_dir / 'ca.pem', 'rb') as f:
                 ca_cert_bytes = f.read()
             ca_cert = x509.load_pem_x509_certificate(ca_cert_bytes, None)
             serial_number = SerialNumberConverter.int2hex(ca_cert.serial_number)

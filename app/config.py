@@ -1,6 +1,7 @@
 from datetime import timedelta
 import sys
 from typing import Any, Literal, Optional, Pattern
+from pathlib import Path
 
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,6 +22,7 @@ class CaSettings(BaseSettings):
     cert_lifetime: timedelta = timedelta(days=60)
     crl_lifetime: timedelta = timedelta(days=7)
     encryption_key: Optional[SecretStr] = None  # encryption of private keys in database
+    import_dir: Path = '/import'
 
     model_config = SettingsConfigDict(env_prefix='ca_')
 
