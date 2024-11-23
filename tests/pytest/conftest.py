@@ -21,4 +21,5 @@ def testclient() -> TestClient:
 
     from main import app
 
-    return TestClient(app)
+    with TestClient(app) as tc:
+        yield tc

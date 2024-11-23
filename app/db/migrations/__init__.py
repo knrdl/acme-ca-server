@@ -15,12 +15,14 @@ async def run():
             insert into migrations (migration) values (default) on conflict do nothing;
         """)
 
+        migrations_dir = Path(__file__).parent
+
         dirty = False
         while True:
             cur_level = await sql.value("""select migration from migrations""")
             next_level = cur_level + 1
-            cur_file = Path('db/migrations') / f'{cur_level:0>3}.sql'
-            next_file = Path('db/migrations') / f'{next_level:0>3}.sql'
+            cur_file =  migrations_dir / f'{cur_level:0>3}.sql'
+            next_file = migrations_dir / f'{next_level:0>3}.sql'
             if not next_file.is_file():
                 break
             logger.info('Running migration: %s', next_file.name)

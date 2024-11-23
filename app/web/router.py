@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Response, status
@@ -8,7 +9,7 @@ from pydantic import constr
 import db
 from config import settings
 
-template_engine = Environment(loader=FileSystemLoader('web/templates'), enable_async=True, autoescape=True)
+template_engine = Environment(loader=FileSystemLoader(Path(__file__).parent / 'templates'), enable_async=True, autoescape=True)
 
 default_params = {  # pylint: disable=duplicate-code
     'app_title': settings.web.app_title,

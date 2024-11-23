@@ -8,9 +8,9 @@ WORKDIR /runner
 
 COPY pyproject.toml .
 
-COPY requirements.txt ./app/
+COPY requirements.txt ./
 
-RUN pip install -r ./app/requirements.txt
+RUN pip install -r ./requirements.txt
 
 COPY app ./app/
 
