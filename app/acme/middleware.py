@@ -112,7 +112,7 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         elif self.allow_new_account:
             account_id = None
             key = jwcrypto.jwk.JWK()
-            key.import_key(**protected_data.jwk.dict())
+            key.import_key(**protected_data.jwk.model_dump())
         else:
             raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='accountDoesNotExist', detail='unknown account. not accepting new accounts')
 

@@ -110,4 +110,4 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-logger.info('Settings: %s', settings.dict())
+logger.info('Settings: %s', settings.model_dump())

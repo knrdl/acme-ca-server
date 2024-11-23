@@ -110,7 +110,7 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
 
 
 def build_crl_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, revocations: set[tuple[str, datetime]]):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     builder = x509.CertificateRevocationListBuilder(
         last_update=now,
         next_update=now + settings.ca.crl_lifetime,

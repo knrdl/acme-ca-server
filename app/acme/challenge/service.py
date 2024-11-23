@@ -9,7 +9,7 @@ from ..exceptions import ACMEException
 
 async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str = None):
     for _ in range(3):  # 3x retry
-        err = True
+        err: bool | ACMEException = True
         try:
             async with httpx.AsyncClient(
                 timeout=10,

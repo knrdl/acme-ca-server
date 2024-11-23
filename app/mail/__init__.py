@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from typing import Literal
 
@@ -58,7 +58,7 @@ async def send_certs_will_expire_warn_mail(*, receiver: str, domains: list[str],
             'domains': domains,
             'expires_at': expires_at,
             'serial_number': serial_number,
-            'expires_in_days': (expires_at.replace(tzinfo=None) - datetime.utcnow()).days,
+            'expires_in_days': (expires_at - datetime.now(timezone.utc)).days,
         },
     )
 

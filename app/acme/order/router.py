@@ -205,9 +205,7 @@ async def finalize_order(response: Response, order_id: str, data: Annotated[Requ
                 signed_cert.cert.not_valid_after_utc,
             )
             order_status = await sql.value(
-                """
-                update orders set status='valid' where id = $1 and status='processing' returning status
-                """,
+                """update orders set status='valid' where id = $1 and status='processing' returning status""",
                 order_id,
             )
     else:

@@ -55,7 +55,7 @@ if settings.ca.enabled:
                     ca_key_enc,
                     crl_pem,
                 )
-            logger.info('Successfully imported CA provided in /import folder')
+            logger.info('Successfully imported CA provided in "%s" folder', settings.ca.import_dir)
         else:
             async with db.transaction() as sql:
                 ok = await sql.value("""select count(serial_number)=1 from cas where active=true""")
