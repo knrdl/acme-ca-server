@@ -21,7 +21,7 @@ async def run():
         while True:
             cur_level = await sql.value("""select migration from migrations""")
             next_level = cur_level + 1
-            cur_file =  migrations_dir / f'{cur_level:0>3}.sql'
+            cur_file = migrations_dir / f'{cur_level:0>3}.sql'
             next_file = migrations_dir / f'{next_level:0>3}.sql'
             if not next_file.is_file():
                 break
