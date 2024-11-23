@@ -12,7 +12,7 @@ docker network rm -f test_net
 # run tests
 set -e
 
-docker build --pull -t acmeserver ..
+docker build --pull -t acmeserver ../..
 
 docker network create test_net
 

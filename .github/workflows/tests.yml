@@ -20,5 +20,5 @@ jobs:
 
       - name: Run test suite
         run: |
-          cd tests
+          cd tests/e2e
           sudo ./run.sh
