@@ -5,7 +5,7 @@
 # Features
 
 * **ACME Server** implementation (http-01 challenge)
-* **Builtin CA** to sign/revoke certificates (can be replaced with an external CA), CA rollover is supported
+* **Built-in CA** to sign/revoke certificates (can be replaced with an external CA), CA rollover is supported
 * Notification **Mails** (account created, certificate will expire soon, certificate is expired) with customizable templates
 * **Web UI** (certificate log) with customizable templates
 
@@ -13,7 +13,7 @@ Tested with [Certbot](https://certbot.eff.org/), [Traefik](https://traefik.io/tr
 
 # Setup
 
-## 1. Generate a CA root certificate (or use an existing cert)
+## 1. Generate a new CA root certificate (or use an existing cert)
 
 ```
 $ openssl genrsa -out ca.key 4096
@@ -44,7 +44,7 @@ services:
     mem_limit: 250m
 
   db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     restart: always
     environment:
       POSTGRES_PASSWORD: secret
@@ -85,7 +85,7 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 | CA_CERT_LIFETIME        | 60 days (`60d`)       | how often certs must be replaced by the ACME client  |
 | CA_CRL_LIFETIME        | 7 days (`7d`)       | how often the certificate revocation list will be rebuilt (despite rebuild on every certificate revocation)  |
 | CA_ENCRYPTION_KEY        | will be generated if not provided       | the key to protect the CA private keys on rest (encrypted in the database)  |
-| CA_IMPORT_DIR        | `/import`       | where the *ca.pem* and *ca.key* are initially imported from, see 2. |
+| CA_IMPORT_DIR        | `/import`       | where the *ca.pem* and *ca.key* are initially imported from, see 2. <br>CA rollover is as simple as placing a new cert in this directory |
 | MAIL_ENABLED        | `False`       | if sending emails is enabled              |
 | MAIL_HOST        | `None`       | smtp host  |
 | MAIL_PORT        | `None`       | smtp port (default depends on encryption method)  |
