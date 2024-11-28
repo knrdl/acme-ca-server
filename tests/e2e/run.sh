@@ -16,7 +16,7 @@ docker build --pull -t acmeserver ../..
 
 docker network create test_net
 
-docker run -dit -e POSTGRES_PASSWORD=secret --name test_db --net test_net docker.io/postgres:15-alpine
+docker run -dit -e POSTGRES_PASSWORD=secret --name test_db --net test_net docker.io/postgres:16-alpine
 
 docker run -dit --name test_mail --net test_net -p "3000:80" docker.io/rnwood/smtp4dev
 echo See sent emails at http://localhost:3000
