@@ -96,7 +96,8 @@ async def create_or_view_account(
 
 @api.post('/key-change')
 async def change_key(data: Annotated[RequestData, Depends(SignedRequest())]):
-    raise ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, exctype='serverInternal', detail='not implemented', new_nonce=data.new_nonce)  # todo
+    """not implemented"""
+    raise ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, exctype='serverInternal', detail='not implemented', new_nonce=data.new_nonce)
 
 
 @api.post('/accounts/{acc_id}')

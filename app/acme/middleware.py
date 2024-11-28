@@ -72,7 +72,7 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
     def _schemeless_url(url: str):
         if url.startswith('https://'):
             return url.removeprefix('https://')
-        if url.startswith('http://'):
+        elif url.startswith('http://'):
             return url.removeprefix('http://')
         return url
 
