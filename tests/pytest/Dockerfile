@@ -2,7 +2,7 @@ FROM python:3.12.7-alpine
 
 RUN apk add openssl
 
-RUN pip install pytest
+RUN pip install pytest coverage
 
 WORKDIR /runner
 
@@ -16,4 +16,4 @@ COPY app ./app/
 
 COPY tests/pytest ./tests/pytest/
 
-CMD [ "pytest", "." ]
+CMD coverage run --branch -m pytest && coverage html --omit="./tests/*"
