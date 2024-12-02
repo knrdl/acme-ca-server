@@ -64,3 +64,15 @@ jobs:
         run: |
           pip install --only-binary=:all: -r requirements.txt
           python -m compileall -q .
+
+  spellcheck:
+    name: Spell Check with Typos
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Actions Repository
+      uses: actions/checkout@v4
+
+    - name: Check spelling
+      uses: crate-ci/typos@master
+      with:
+        files: .
