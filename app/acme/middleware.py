@@ -106,7 +106,7 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
             else:
                 key_data = None
             if not key_data:
-                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='accountDoesNotExist', detail='unknown, deactived or revoked account')
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='accountDoesNotExist', detail='unknown, deactivated or revoked account')
             key = jwcrypto.jwk.JWK()
             key.import_key(**key_data)
         elif self.allow_new_account:

@@ -10,7 +10,7 @@ CREATE DOMAIN domain_name AS TEXT CHECK( VALUE ~ '^.+\.[^\.]+$');
 -- 2. moves load from postgres to application server
 CREATE DOMAIN random_id AS TEXT CHECK( length(VALUE) > 20 );
 
--- hex represenation of a certificate serial number
+-- hex representation of a certificate serial number
 CREATE DOMAIN serial_number AS TEXT CHECK( VALUE ~ '^[0-9A-F]+$');
 
 -- these acme error types can be stored in db, list not exhausive

@@ -55,7 +55,7 @@ class transaction:  # pylint: disable=invalid-name
         return await self.conn.fetchrow(*args)
 
     async def value(self, *args):
-        """fetch first value from frist response row for query"""
+        """fetch first value from first response row for query"""
         return await self.conn.fetchval(*args)
 
     async def exec(self, *args):  # noqa: A003 (allow shadowing builtin "type")

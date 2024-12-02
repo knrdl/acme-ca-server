@@ -121,7 +121,7 @@ async def view_or_update_account(
             await sql.exec("""update accounts set status='deactivated' where id = $1""", acc_id)
             await sql.exec(
                 """
-                update orders set status='invalid', error=row('unauthorized','account deactived')
+                update orders set status='invalid', error=row('unauthorized','account deactivated')
                 where account_id = $1 and status <> 'invalid'
                 """,
                 acc_id,

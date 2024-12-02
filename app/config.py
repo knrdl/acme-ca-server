@@ -68,7 +68,7 @@ class MailSettings(BaseSettings):
         if self.enabled and (not self.host or not self.sender):
             raise ValueError('Mail parameters (mail_host, mail_sender) are missing as SMTP is enabled')
         if (self.username and not self.password) or (not self.username and self.password):
-            raise ValueError('Either no mail auth must be specifid or username and password must be provided')
+            raise ValueError('Either no mail auth must be specified or username and password must be provided')
         if self.enabled and not self.port:
             self.port = {'tls': 465, 'starttls': 587, 'plain': 25}[self.encryption]
         return self
