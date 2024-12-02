@@ -2,6 +2,7 @@ from .conftest import TestClient
 
 import re
 import jwcrypto
+import datetime
 
 
 def test_generate_nonce(testclient: TestClient, directory):
@@ -23,3 +24,10 @@ def test_should_fail_on_bad_nonce(signed_request, directory):
     assert response.headers['Content-Type'] == 'application/problem+json'
     assert response.json()['type'] == 'urn:ietf:params:acme:error:badNonce'
     assert response.json()['detail'] == 'old nonce is wrong'
+
+
+def test_should_persist_new_nonce_with_expiration(testclient: TestClient, directory, db) -> None:
+    nonce = testclient.get(directory['newNonce']).headers['Replay-Nonce']
+
+    age, *_ = db.fetch_row('select expires_at - now() from nonces where id=$1', nonce)
+    assert datetime.timedelta(minutes=29, seconds=59) < age < datetime.timedelta(minutes=30, milliseconds=50)

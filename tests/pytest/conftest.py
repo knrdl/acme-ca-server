@@ -5,6 +5,7 @@ import shutil
 import pytest
 from pathlib import Path
 import subprocess
+import asyncio
 
 import jwcrypto.jwk
 import json
@@ -40,17 +41,20 @@ def directory(testclient: TestClient) -> dict[str, str]:
     return testclient.get('/acme/directory').json()
 
 
-@pytest.fixture(scope='session')
-def session_jwk() -> jwcrypto.jwk.JWK:
-    # We only need one jwk per session
+@pytest.fixture
+def account_jwk() -> jwcrypto.jwk.JWK:
     jwk_key = jwcrypto.jwk.JWK.generate(kty='EC', crv='P-256')
 
     return jwk_key
 
 
 @pytest.fixture
-def signed_request(testclient: TestClient, session_jwk: jwcrypto.jwk.JWK, directory):
+def signed_request(testclient: TestClient, account_jwk: jwcrypto.jwk.JWK, directory):
     class SignedRequest:
+        @property
+        def account_jwk(self):
+            return account_jwk
+
         @property
         def nonce(self):
             return testclient.head(directory['newNonce']).headers['Replay-Nonce']
@@ -59,12 +63,32 @@ def signed_request(testclient: TestClient, session_jwk: jwcrypto.jwk.JWK, direct
             jws = jwcrypto.jws.JWS('' if payload == '' else json.dumps(payload))
             protected = {'alg': 'ES256', 'nonce': nonce, 'url': url}
             if account_url is None:
-                protected['jwk'] = session_jwk.export_public(as_dict=True)
+                protected['jwk'] = account_jwk.export_public(as_dict=True)
             else:
                 protected['kid'] = account_url
 
-            jws.add_signature(session_jwk, protected=protected)
+            jws.add_signature(account_jwk, protected=protected)
 
             return testclient.post(url, content=jws.serialize(), headers={'Content-Type': 'application/jose+json'})
 
     return SignedRequest()
+
+
+@pytest.fixture(scope='session')
+def db():
+    import asyncpg
+
+    class DbConnector:
+        @staticmethod
+        def fetch_row(*args):
+            import config
+
+            async def do():
+                connection = await asyncpg.connect(str(config.settings.db_dsn))
+                stored_row = await connection.fetchrow(*args)
+                await connection.close()
+                return stored_row
+
+            return asyncio.run(do())
+
+    return DbConnector()
