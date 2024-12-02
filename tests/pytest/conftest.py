@@ -12,7 +12,7 @@ import json
 
 @pytest.fixture(scope='session')
 def testclient() -> Generator[TestClient, None, None]:
-    os.environ['ca_encryption_key'] = 'M8L6RSYPiHHr6GogXmkQIs7gVai_K5fDDJiNK7zUt0k='
+    os.environ['ca_encryption_key'] = 'M8L6RSYPiHHr6GogXmkQIs7gVia_K5fDDJiNK7zUt0k='
     os.environ['external_url'] = 'http://localhost:8000/'
 
     ca_dir = Path(__file__).parent / 'import-ca'

@@ -10,7 +10,7 @@ async def get_directory():
     """
     See RFC 8555 7.1.1 "Directory" <https://www.rfc-editor.org/rfc/rfc8555#section-7.1.1>
     """
-    
+
     meta = {'website': settings.external_url}
     if settings.acme.terms_of_service_url:
         meta['termsOfService'] = settings.acme.terms_of_service_url
