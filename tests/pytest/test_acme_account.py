@@ -42,3 +42,47 @@ def test_should_return_existing_account(signed_request, directory):
     assert response2.status_code == 200
     assert response1.headers['Location'] == response2.headers['Location']
     assert response1.json() == response2.json()
+
+
+def test_should_update_account(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': [_mail_address]})
+    assert response.status_code == 201
+    account_url = response.headers['Location']
+
+    response = signed_request(account_url, signed_request.nonce, {'contact': ['mailto:test@example.com'], 'status': 'deactivated'}, account_url)
+    assert response.status_code == 200, response.json()
+
+    response = signed_request(account_url, signed_request.nonce, {}, account_url)
+    assert response.status_code == 200
+    assert response.json()['status'] == 'deactivated'
+    assert response.json()['contact'] == ['mailto:test@example.com']
+
+
+def test_should_handle_account_mismatch(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': [_mail_address]})
+    assert response.status_code == 201
+    account_url = response.headers['Location']
+
+    response = signed_request('http://localhost:8000/acme/accounts/hello123', signed_request.nonce, {}, account_url)
+    assert response.status_code == 403
+    assert response.headers['Content-Type'] == 'application/problem+json'
+    assert response.json()['type'] == 'urn:ietf:params:acme:error:unauthorized'
+
+    response = signed_request(account_url, signed_request.nonce, {}, 'http://localhost:8000/acme/accounts/hello123')
+    assert response.status_code == 400
+    assert response.headers['Content-Type'] == 'application/problem+json'
+    assert response.json()['type'] == 'urn:ietf:params:acme:error:accountDoesNotExist'
+
+
+def test_should_show_account_orders(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': [_mail_address]})
+    assert response.status_code == 201
+    account_url = response.headers['Location']
+    orders_url = response.json()['orders']
+
+    response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'dns', 'value': 'test.example.org'}]}, account_url)
+
+    response = signed_request(orders_url, response.headers['Replay-Nonce'], '', account_url)
+    assert response.status_code == 200
+    assert len(response.json()['orders']) == 1
+    assert response.json()['orders'][0].startswith('http://localhost:8000/acme/orders/'), response.json()

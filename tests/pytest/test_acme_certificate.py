@@ -49,3 +49,10 @@ def test_should_revoke_certificate(signed_request, directory):
     )
     assert response.status_code == 200
     assert response.headers['Content-Length'] == '0'
+
+    response = signed_request(
+        directory['revokeCert'], response.headers['Replay-Nonce'], {'certificate': jwcrypto.common.base64url_encode(signed_cert.public_bytes(Encoding.DER))}, account_id
+    )
+    assert response.status_code == 400
+    assert response.headers['Content-Type'] == 'application/problem+json'
+    assert response.json()['type'] == 'urn:ietf:params:acme:error:alreadyRevoked'
