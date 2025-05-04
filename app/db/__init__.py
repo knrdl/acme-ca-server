@@ -16,7 +16,6 @@ async def connect():
 
 
 async def disconnect():
-    global _pool  # pylint: disable=global-variable-not-assigned
     await _pool.close()
 
 
