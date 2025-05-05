@@ -1,6 +1,6 @@
 aiosmtplib==4.0.1
 asyncpg==0.30.0
-cryptography==44.0.2
+cryptography==44.0.3
 fastapi==0.115.12
 httpx==0.28.1
 jinja2==3.1.6
