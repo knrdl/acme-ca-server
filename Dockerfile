@@ -1,4 +1,4 @@
-FROM docker.io/python:3.13.4-alpine
+FROM docker.io/python:3.13.5-alpine
 
 RUN adduser --no-create-home --disabled-password appuser && \
     apk update --no-cache
