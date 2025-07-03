@@ -1,8 +1,7 @@
 import secrets
 
-from fastapi import status
-
 import db
+from fastapi import status
 
 from ..exceptions import ACMEException
 

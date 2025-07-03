@@ -1,8 +1,7 @@
 import asyncio
 
-from logger import logger
-
 import db
+from logger import logger
 
 from .service import build_crl_sync, load_ca_sync
 

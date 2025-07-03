@@ -1,8 +1,7 @@
 import asyncio
 
-from logger import logger
-
 import db
+from logger import logger
 
 
 async def start():

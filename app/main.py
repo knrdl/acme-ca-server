@@ -5,6 +5,8 @@ from pathlib import Path
 
 import acme
 import ca
+import db
+import db.migrations
 import web
 from acme.exceptions import ACMEException
 from config import settings
@@ -15,9 +17,6 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
-
-import db
-import db.migrations
 
 
 @asynccontextmanager
