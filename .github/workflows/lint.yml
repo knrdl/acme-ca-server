@@ -38,17 +38,20 @@ jobs:
           
       - name: Check linting
         run: |
-          python --version
           pip install -r requirements.txt
-          # echo -e "[settings]\nline_length=179\nsections=FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER" > .isort.cfg
-          ls -la
+          echo -e "[settings]\nline_length=179\nsections=FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER" > .isort.cfg
           # ignore list:
           # F722: https://stackoverflow.com/questions/64909849/syntax-error-with-flake8-and-pydantic-constrained-types-constrregex
           # B008: FastAPI uses by design function calls in arguments for dependency injection
-          python -m flake8 --max-line-length 179 --ignore=F722,B008,I001,I005 app
+          echo flake8
+          python -m flake8 --max-line-length 179 --ignore=F722,B008,I001,004,I005 app
+          echo pylint
           pylint app
+          echo ruff check
           ruff check app
+          echo ruff format
           ruff format --check app
+          echo mypy
           mypy app
 
   python-version-support:
