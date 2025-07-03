@@ -39,7 +39,7 @@ async def start():
                                 from expiring_domains expd
                                 join newest_domains newd on expd.domain = newd.domain and expd.not_valid_after = newd.not_valid_after
                             group by expd.mail, expd.serial_number, expd.not_valid_after
-                                having array_length(array_agg(expd.domain), 1) > 0
+                                having array_length(array_agg(expd.domain), 1) > 0 and expd.mail is not null
                             """,
                             settings.mail.warn_before_cert_expires,
                         )

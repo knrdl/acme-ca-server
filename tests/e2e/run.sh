@@ -102,6 +102,14 @@ docker run --rm --name test_certbot4c --net test_net -v "$PWD/certbot:/etc/letse
      --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot show_account \
      --server http://acme.example.org:8080/acme/directory || true
 
+echo "Certbot 5a (account without mail addr)"
+docker run --rm --pull always --name test_certbot5a --net test_net \
+     --network-alias host1.example.org --network-alias host2.example.org --network-alias host3.example.org docker.io/certbot/certbot certonly \
+     --server http://acme.example.org:8080/acme/directory --standalone --no-eff-email \
+     -vvv \
+     --domains host1.example.org --domains host2.example.org 2>&1 | grep urn:ietf:params:acme:error:malformed
+
+
 # Traefik
 
 rm -rf traefikdata

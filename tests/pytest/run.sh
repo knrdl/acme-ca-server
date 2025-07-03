@@ -2,9 +2,8 @@
 
 # also works: alias docker='podman'
 
-docker network rm -f test_net
-
 docker container rm -f test_db
+docker network rm -f test_net
 
 set -e
 
@@ -16,4 +15,4 @@ docker run -dt -e POSTGRES_PASSWORD=secret --name test_db --net test_net docker.
 
 sleep 5
 
-docker run -t --rm --name test_runner --net test_net -e db_dsn=postgresql://postgres:secret@test_db/postgres testrunner
+docker run -t --rm --name test_runner --net test_net -e db_dsn=postgresql://postgres:secret@test_db/postgres -v $PWD/coverage:/runner/htmlcov testrunner

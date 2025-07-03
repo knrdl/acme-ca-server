@@ -55,6 +55,7 @@ async def revoke_cert(data: Annotated[RequestData[RevokeCertPayload], Depends(Si
     cert = await parse_cert(cert_bytes)
     serial_number = SerialNumberConverter.int2hex(cert.serial_number)
     async with db.transaction(readonly=True) as sql:
+        # a deactivated account should still be allowed to revoke its certificates, if the client still possesses the private key
         ok = await sql.value(
             """
             select true from certificates c

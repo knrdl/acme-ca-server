@@ -18,6 +18,8 @@ contactType = conlist(
     min_length=1,
     max_length=1,
 )
+if not settings.acme.mail_required:
+    contactType = contactType | conlist(str, min_length=0, max_length=0) | None
 
 
 class NewOrViewAccountPayload(BaseModel):
@@ -27,13 +29,13 @@ class NewOrViewAccountPayload(BaseModel):
 
 
 class NewAccountPayload(BaseModel):
-    contact: contactType
+    contact: contactType = []
     termsOfServiceAgreed: tosAgreedType = None
     onlyReturnExisting: Literal[False] = False
 
     @property
-    def mail_addr(self) -> str:
-        return self.contact[0].removeprefix('mailto:')
+    def mail_addr(self) -> str | None:
+        return self.contact[0].removeprefix('mailto:') if self.contact else None
 
 
 class UpdateAccountPayload(BaseModel):
@@ -42,8 +44,7 @@ class UpdateAccountPayload(BaseModel):
 
     @property
     def mail_addr(self) -> str | None:
-        if self.contact:
-            return self.contact[0].removeprefix('mailto:')
+        return self.contact[0].removeprefix('mailto:') if self.contact else None
 
 
 api = APIRouter(tags=['acme:account'])
@@ -80,16 +81,17 @@ async def create_or_view_account(
                     mail_addr,
                     jwk_json,
                 )
-            try:
-                await mail.send_new_account_info_mail(mail_addr)
-            except Exception:
-                logger.error('could not send new account mail to "%s"', mail_addr, exc_info=True)
+            if mail_addr:
+                try:
+                    await mail.send_new_account_info_mail(mail_addr)
+                except Exception:
+                    logger.error('could not send new account mail to "%s"', mail_addr, exc_info=True)
 
     response.status_code = 200 if account_exists else 201
     response.headers['Location'] = f'{settings.external_url}acme/accounts/{account_id}'
     return {
         'status': account_status,
-        'contact': ['mailto:' + mail_addr],
+        'contact': ['mailto:' + mail_addr] if mail_addr else [],
         'orders': f'{settings.external_url}acme/accounts/{account_id}/orders',
     }
 
@@ -108,13 +110,15 @@ async def view_or_update_account(
     if acc_id != data.account_id:
         raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, exctype='unauthorized', detail='wrong kid', new_nonce=data.new_nonce)
 
-    if data.payload.contact:
+    if 'contact' in data.payload.model_fields_set:  # contact has been set explicitly and is not the default `None` from model definition
         async with db.transaction() as sql:
-            await sql.exec("""update accounts set mail=$1 where id = $2 and status = 'valid'""", data.payload.mail_addr, acc_id)
-        try:
-            await mail.send_new_account_info_mail(data.payload.mail_addr)
-        except Exception:
-            logger.error('could not send new account mail to "%s"', data.payload.mail_addr, exc_info=True)
+            result = await sql.exec("""update accounts set mail=$1 where id = $2 and status = 'valid'""", data.payload.mail_addr, acc_id)
+        account_is_valid = result == 'UPDATE 1'
+        if data.payload.mail_addr and account_is_valid:
+            try:
+                await mail.send_new_account_info_mail(data.payload.mail_addr)
+            except Exception:
+                logger.error('could not send new account mail to "%s"', data.payload.mail_addr, exc_info=True)
 
     if data.payload.status == 'deactivated':  # https://www.rfc-editor.org/rfc/rfc8555#section-7.3.6
         async with db.transaction() as sql:
@@ -132,7 +136,7 @@ async def view_or_update_account(
 
     return {
         'status': account_status,
-        'contact': ['mailto:' + mail_addr],
+        'contact': ['mailto:' + mail_addr] if mail_addr else [],
         'orders': f'{settings.external_url}acme/accounts/{acc_id}/orders',
     }
 

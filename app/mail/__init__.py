@@ -20,7 +20,7 @@ default_params = {  # pylint: disable=duplicate-code
 Templates = Literal['cert-expired-info', 'cert-expires-warning', 'new-account-info']
 
 
-async def send_mail(receiver: str, template: Templates, subject_vars: dict = None, body_vars: dict = None):
+async def send_mail(receiver: str, template: Templates, subject_vars: dict | None = None, body_vars: dict | None = None):
     subject_vars = subject_vars or {}
     subject_vars.update(**default_params)
     body_vars = body_vars or {}

@@ -1,0 +1,52 @@
+services:
+
+  cert_gen:
+    image: alpine
+    command: >
+      sh -c '
+        apk add openssl &&
+        openssl genrsa -out ca.key 4096 &&
+        openssl req -new -x509 -nodes -days 3650 -subj "/C=DE/O=Demo" -key ca.key -out ca.pem &&
+        chmod a+rw -R .
+      '
+    volumes:
+      - ./import:/import
+    working_dir: /import
+
+  app:
+    build: .
+    hostname: acme-ca-server
+    environment:
+      EXTERNAL_URL: http://localhost:8080
+      DB_DSN: postgresql://postgres:secret@db/postgres
+      CA_ENCRYPTION_KEY: Ka7prX3ZqESxa79C3kqWOI1cV979B-x7A7NT5-nU2p0=
+      WEB_ENABLE_PUBLIC_LOG: 'True'
+      ACME_MAIL_REQUIRED: 'False'
+    depends_on:
+      db:
+        condition: service_started
+      cert_gen:
+        condition: service_completed_successfully
+    ports:
+      - 8080:8080
+    networks:
+      - net
+    volumes:
+      - ./app:/app:ro
+      - ./import:/import:ro
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+    mem_limit: 250m
+
+  db:
+    image: postgres:16-alpine
+    hostname: db
+    environment:
+      POSTGRES_PASSWORD: secret
+    networks:
+      - net
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    mem_limit: 250m
+
+networks:
+  net:

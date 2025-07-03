@@ -32,6 +32,54 @@ def test_should_return_created_new_account_if_not_exist(signed_request, director
     assert response.json()['contact'] == [_mail_address]
     assert response.json()['orders'] == response.headers['Location'] + '/orders'
 
+def test_should_create_account_with_empty_contact(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': []})
+    assert response.status_code == 201
+    assert response.json()['contact'] == []
+
+def test_should_create_account_with_missing_contact(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': None})
+    assert response.status_code == 201
+    assert response.json()['contact'] == []
+
+def test_should_create_account_without_contact(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    assert response.status_code == 201
+    assert response.json()['contact'] == []
+
+def test_should_update_account_contact(signed_request, directory):
+    # create account without mail
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    assert response.status_code == 201
+    assert response.json()['contact'] == []
+
+    account_url = response.headers['Location']
+
+    # set a mail addr and check
+    response = signed_request(account_url, signed_request.nonce, {'contact': ['mailto:test123@example.com']}, account_url)
+    assert response.status_code == 200, response.json()
+
+    response = signed_request(account_url, signed_request.nonce, {}, account_url)
+    assert response.status_code == 200
+    assert response.json()['contact'] == ['mailto:test123@example.com']
+
+    #don't remove mail addr and check is unchanged
+    response = signed_request(account_url, signed_request.nonce, {}, account_url)
+    assert response.status_code == 200, response.json()
+
+    response = signed_request(account_url, signed_request.nonce, {}, account_url)
+    assert response.status_code == 200
+    assert response.json()['contact'] == ['mailto:test123@example.com']
+
+    # remove mail addr and check
+    response = signed_request(account_url, signed_request.nonce, {'contact': None}, account_url)
+    assert response.status_code == 200, response.json()
+
+    response = signed_request(account_url, signed_request.nonce, {}, account_url)
+    assert response.status_code == 200
+    assert response.json()['contact'] == []
+
+
 
 def test_should_return_existing_account(signed_request, directory):
     # signed_request uses both times the same jwk

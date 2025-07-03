@@ -13,7 +13,7 @@ class WebSettings(BaseSettings):
     enabled: bool = True
     enable_public_log: bool = False
     app_title: str = 'ACME CA Server'
-    app_description: str = 'Self hosted ACME CA Server'
+    app_description: str = 'Self-hosted ACME CA Server'
     model_config = SettingsConfigDict(env_prefix='web_')
 
 
@@ -77,6 +77,7 @@ class MailSettings(BaseSettings):
 class AcmeSettings(BaseSettings):
     terms_of_service_url: AnyHttpUrl | None = None
     mail_target_regex: Pattern = r'[^@]+@[^@]+\.[^@]+'
+    mail_required: bool = True
     target_domain_regex: Pattern = r'[^\*]+\.[^\.]+'  # disallow wildcard
 
     model_config = SettingsConfigDict(env_prefix='acme_')

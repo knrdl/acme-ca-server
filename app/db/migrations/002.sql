@@ -1,0 +1,1 @@
+alter table accounts alter column mail drop not null;

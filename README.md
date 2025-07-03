@@ -2,25 +2,27 @@
 
 [![Build](https://github.com/knrdl/acme-ca-server/actions/workflows/docker-image.yml/badge.svg)](https://github.com/knrdl/acme-ca-server/actions/workflows/docker-image.yml)
 
-# Features
+A self-hosted ACME server with a built-in CA and optional web interface.
 
-* **ACME Server** implementation (http-01 challenge)
-* **Built-in CA** to sign/revoke certificates (can be replaced with an external CA), CA rollover is supported
-* Notification **Mails** (account created, certificate will expire soon, certificate is expired) with customizable templates
-* **Web UI** (certificate log) with customizable templates
+## Features
+
+* ✅ **ACME Server** implementation (supports `http-01` challenge)
+* 🔐 **Built-in CA** to sign/revoke certificates (can be replaced with an external CA), CA rollover is supported
+* ✉️ **Mail notifications**  (for account creation, expiring and expired certificates) with customizable templates
+* 🌐 **Web UI** (certificate and domain log) with customizable templates
 
 Tested with [Certbot](https://certbot.eff.org/), [Traefik](https://traefik.io/traefik/), [Caddy](https://caddyserver.com/), [uacme](https://github.com/ndilieto/uacme), [acme.sh](https://github.com/acmesh-official/acme.sh).
 
-# Setup
+## Setup
 
-## 1. Generate a new CA root certificate (or use an existing cert)
+### 1. Generate a new CA root certificate (or use an existing cert)
 
 ```
 $ openssl genrsa -out ca.key 4096
 $ openssl req -new -x509 -nodes -days 3650 -subj "/C=DE/O=Demo" -key ca.key -out ca.pem
 ```
 
-## 2. Deploy the container
+### 2. Deploy the container
 
 Docker Compose snippet:
 
@@ -58,52 +60,53 @@ networks:
   net:
 ```
 
-## 3. Reverse proxy
+### 3. Reverse proxy
 
-Serve the app behind a TLS terminating reverse proxy, e.g. as https://acme.mydomain.org
+Serve the app securely using a TLS-terminating reverse proxy (like Apache, Nginx, Traefik or Caddy), e.g. at https://acme.mydomain.org
 
 The app listens on port 8080 for http traffic.
 
-## 4. Test with certbot
+### 4. Test with certbot
 
 ```shell
 docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/acme/directory --standalone --no-eff-email --email user1@mydomain.org -v --domains test1.mydomain.org
 ```
 
-# Customizations
+## Customizations
 
-## Environment Variables
+### Environment Variables
 
 | Env Var | Default | Description |
 |---------|---------|-------------|
 | EXTERNAL_URL        |         | The HTTPS address the server will be reachable from, e.g. https://acme.mydomain.org             |
-| DB_DSN        |         | Postgres connection string, e.g. `postgresql://username:password@host/dbname` (database will be initialized on startup)            |
+| DB_DSN        |         | Postgres connection string, e.g. `postgresql://username:password@host/dbname` (the database will be initialized on startup)            |
 | ACME_TERMS_OF_SERVICE_URL        | `None`        | Optional URL which the ACME client can show when the user has to accept the terms of service, e.g. https://acme.mydomain.org/terms             |
-| ACME_MAIL_TARGET_REGEX        | any mail address       | restrict the email address which must be provided to the ACME client by the user. E.g. `[^@]+@mydomain\.org` only allows mail addresses from mydomain.org             |
+| ACME_MAIL_REQUIRED        | `True`       | whether the user has to provide a mail address to obtain certificates via the ACME client (recommended)        |
+| ACME_MAIL_TARGET_REGEX        | any mail address       | restrict the format of user-provided mail addresses. E.g. `[^@]+@mydomain\.org` only allows mail addresses from mydomain.org             |
 | ACME_TARGET_DOMAIN_REGEX        | any non-wildcard domain name       | restrict the domain names for which certificates can be requested via ACME. E.g. `[^\*]+\.mydomain\.org` only allows domain names from mydomain.org             |
 | CA_ENABLED        | `True`       | whether the internal CA is enabled, set this to false when providing a custom CA implementation  |
 | CA_CERT_LIFETIME        | 60 days (`60d`)       | how often certs must be replaced by the ACME client  |
 | CA_CRL_LIFETIME        | 7 days (`7d`)       | how often the certificate revocation list will be rebuilt (despite rebuild on every certificate revocation)  |
-| CA_ENCRYPTION_KEY        | will be generated if not provided       | the key to protect the CA private keys on rest (encrypted in the database)  |
-| CA_IMPORT_DIR        | `/import`       | where the *ca.pem* and *ca.key* are initially imported from, see 2. <br>CA rollover is as simple as placing a new cert in this directory |
-| MAIL_ENABLED        | `False`       | if sending emails is enabled              |
-| MAIL_HOST        | `None`       | smtp host  |
-| MAIL_PORT        | `None`       | smtp port (default depends on encryption method)  |
-| MAIL_USERNAME        | `None`       | smtp auth username  |
-| MAIL_PASSWORD        | `None`       | smtp auth password  |
+| CA_ENCRYPTION_KEY        | will be generated if not provided       | the key to protect the CA private keys at rest (encrypted in the database)  |
+| CA_IMPORT_DIR        | `/import`       | where the *ca.pem* and *ca.key* are initially imported from, see 2. <br>CA rollover is as simple as placing a new cert and key in this directory. The server will detect and import them at startup. |
+| MAIL_ENABLED        | `False`       | if sending mails is enabled              |
+| MAIL_HOST        | `None`       | SMTP host  |
+| MAIL_PORT        | `None`       | SMTP port (default depends on encryption method)  |
+| MAIL_USERNAME        | `None`       | SMTP auth username  |
+| MAIL_PASSWORD        | `None`       | SMTP auth password  |
 | MAIL_ENCRYPTION        | `tls`       | transport encryption method: `tls` (recommended), `starttls` or `plain` (unencrypted)  |
-| MAIL_SENDER        | `None`       | the email address shown when sending mails, e.g. `acme@mydomain.org`  |
+| MAIL_SENDER        | `None`       | the mail address shown when sending mails, e.g. `acme@mydomain.org`  |
 | MAIL_NOTIFY_ON_ACCOUNT_CREATION        | `True`       | whether to send a mail when the user runs ACME for the first time  |
 | MAIL_WARN_BEFORE_CERT_EXPIRES        | 20 days (`20d`)     | when to warn the user via mail that a certificate has not been renewed in time (can be disabled by providing `false` as value)  |
 | MAIL_NOTIFY_WHEN_CERT_EXPIRED        | `True`       | whether to inform the user that a certificate finally expired which has not been renewed in time  |
 | WEB_ENABLED        | `True` | whether to also provide UI endpoints or just the ACME functionality |
 | WEB_ENABLE_PUBLIC_LOG        | `False` | whether to show a transparency log of all certificates generated via ACME  |
 | WEB_APP_TITLE        | `ACME CA Server` | title shown in web and mails  |
-| WEB_APP_DESCRIPTION        | `Self hosted ACME CA Server` | description shown in web and mails  |
+| WEB_APP_DESCRIPTION        | `Self-hosted ACME CA Server` | description shown in web and mails  |
 
-## Customize templates
+### Customize templates
 
-### Mail
+#### Mail
 
 Templates consist of `subject.txt` and `body.html` (see [here](./app/mail/templates)). Overwrite the following files:
 * /app/mail/templates/**cert-expired-info**/{subject.txt,body.html}
@@ -120,7 +123,7 @@ Template parameters:
 * `expires_in_days`: `int` days until cert will expire
 * `serial_number`: `str` expiring certs serial number (hex)
 
-### Web UI
+#### Web UI
 
 Custom files to be served by the http server can be placed in `/app/web/www`.
 
@@ -137,11 +140,11 @@ Template parameters:
 * `certs`: `list` list of certs for `cert-log.html`
 * `domains`: `list` list of domains for `domain-log.html`
 
-## Provide a custom CA implementation
+### Provide a custom CA implementation
 
 First set env var `CA_ENABLED=False`. Then overwrite the file `/app/ca/service.py` (see [here](./app/ca/service.py)) in the docker image. It must provide two functions:
 
-### 1. `sign_csr()`
+#### 1. `sign_csr()`
 
 ```python
 async def sign_csr(csr: x509.CertificateSigningRequest, subject_domain: str, san_domains: list[str]) -> SignedCertInfo:
@@ -162,7 +165,7 @@ class SignedCertInfo:
 * `cert`: a [x509.Certificate](https://cryptography.io/en/latest/x509/reference/#cryptography.x509.Certificate) object
 * `cert_chain_pem`: a PEM-encoded text file containing the created cert as well as the root or also intermediate cert. This file will be used by the ACME client
 
-### 2. `revoke_cert()`
+#### 2. `revoke_cert()`
 
 ```python
 async def revoke_cert(serial_number: str, revocations: set[tuple[str, datetime]]) -> None:
@@ -175,9 +178,9 @@ async def revoke_cert(serial_number: str, revocations: set[tuple[str, datetime]]
 
 A custom CA backend must also handle the CRL (certificate revocation list) distribution.
 
-# Internals
+## Internals
 
-## Entities
+### Entities
 
 ```mermaid
 flowchart LR
