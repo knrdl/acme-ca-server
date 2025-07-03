@@ -34,6 +34,7 @@ jobs:
           pip install flake8 flake8-bandit flake8-bugbear flake8-builtins flake8-comprehensions flake8-deprecated flake8-isort flake8-print flake8-quotes flake8-todo
           pip install pylint
           pip install ruff
+          pip install mypy
           
       - name: Check linting
         run: |
@@ -46,6 +47,7 @@ jobs:
           pylint app
           ruff check app
           ruff format --check app
+          mypy app
 
   python-version-support:
     runs-on: ubuntu-latest

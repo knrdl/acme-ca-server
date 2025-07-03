@@ -21,7 +21,7 @@ class CaSettings(BaseSettings):
     cert_lifetime: timedelta = timedelta(days=60)
     crl_lifetime: timedelta = timedelta(days=7)
     encryption_key: Optional[SecretStr] = None  # encryption of private keys in database
-    import_dir: Path = '/import'
+    import_dir: Path = '/import'  # type: ignore[assignment]
 
     model_config = SettingsConfigDict(env_prefix='ca_')
 
@@ -75,9 +75,9 @@ class MailSettings(BaseSettings):
 
 class AcmeSettings(BaseSettings):
     terms_of_service_url: AnyHttpUrl | None = None
-    mail_target_regex: Pattern = r'[^@]+@[^@]+\.[^@]+'
+    mail_target_regex: Pattern = r'[^@]+@[^@]+\.[^@]+'  # type: ignore[assignment]
     mail_required: bool = True
-    target_domain_regex: Pattern = r'[^\*]+\.[^\.]+'  # disallow wildcard
+    target_domain_regex: Pattern = r'[^\*]+\.[^\.]+'  # type: ignore[assignment]  # disallow wildcard
 
     model_config = SettingsConfigDict(env_prefix='acme_')
 
@@ -109,7 +109,7 @@ class Settings(BaseSettings):
         return self
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]
 
 
 logger.info('Settings: %s', settings.model_dump())

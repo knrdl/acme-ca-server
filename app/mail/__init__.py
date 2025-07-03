@@ -27,7 +27,7 @@ async def send_mail(receiver: str, template: Templates, subject_vars: dict | Non
     subject_job = template_engine.get_template(template + '/subject.txt').render_async(subject_vars)
     body_job = template_engine.get_template(template + '/body.html').render_async(body_vars)
     message = MIMEText(await body_job, 'html', 'utf-8')
-    message['From'] = settings.mail.sender
+    message['From'] = settings.mail.sender or ''
     message['To'] = receiver
     message['Subject'] = await subject_job
     if settings.mail.enabled:
@@ -37,7 +37,7 @@ async def send_mail(receiver: str, template: Templates, subject_vars: dict | Non
         async with SMTP(
             hostname=settings.mail.host,
             port=settings.mail.port,
-            **auth,
+            **auth,  # type: ignore[arg-type]
             use_tls=settings.mail.encryption == 'tls',
             start_tls=settings.mail.encryption == 'starttls',
         ) as client:

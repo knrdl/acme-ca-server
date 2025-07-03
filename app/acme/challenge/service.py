@@ -1,4 +1,5 @@
 import asyncio
+from typing import Literal
 
 import httpx
 import jwcrypto.jwk
@@ -7,9 +8,9 @@ from fastapi import status
 from ..exceptions import ACMEException
 
 
-async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str = None):
+async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str | None = None):
     for _ in range(3):  # 3x retry
-        err: bool | ACMEException = True
+        err: Literal[False] | ACMEException
         try:
             async with httpx.AsyncClient(
                 timeout=10,
@@ -40,4 +41,4 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
         if err is False:
             return  # check successful
         await asyncio.sleep(3)
-    raise err
+    raise err  # type: ignore[misc]

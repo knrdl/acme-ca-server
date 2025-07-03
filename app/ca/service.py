@@ -100,7 +100,7 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
         .add_extension(x509.ExtendedKeyUsage(usages=[x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH, x509.oid.ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
     )
 
-    cert = cert_builder.sign(private_key=ca_key, algorithm=hashes.SHA512())
+    cert = cert_builder.sign(private_key=ca_key, algorithm=hashes.SHA512())  # type: ignore[arg-type]
 
     cert_pem = cert.public_bytes(serialization.Encoding.PEM)
     ca_cert_pem = ca_cert.public_bytes(serialization.Encoding.PEM)
@@ -119,6 +119,6 @@ def build_crl_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, revoca
     for serial_number, revoked_at in revocations:
         revoked_cert = x509.RevokedCertificateBuilder().serial_number(SerialNumberConverter.hex2int(serial_number)).revocation_date(revoked_at).build()
         builder = builder.add_revoked_certificate(revoked_cert)
-    crl = builder.sign(private_key=ca_key, algorithm=hashes.SHA512())
+    crl = builder.sign(private_key=ca_key, algorithm=hashes.SHA512())  # type: ignore[arg-type]
     crl_pem = crl.public_bytes(encoding=serialization.Encoding.PEM).decode()
     return crl, crl_pem

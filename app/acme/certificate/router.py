@@ -13,7 +13,7 @@ from .service import SerialNumberConverter, parse_cert
 
 
 class RevokeCertPayload(BaseModel):
-    certificate: constr(min_length=1, max_length=1 * 1024**2)
+    certificate: constr(min_length=1, max_length=1 * 1024**2)  # type: ignore[valid-type]
     reason: int | None = None  # not evaluated
 
 
@@ -23,7 +23,7 @@ api = APIRouter(tags=['acme:certificate'])
 @api.post('/certificates/{serial_number}', response_class=Response, responses={200: {'content': {'application/pem-certificate-chain': {}}}})
 async def download_cert(
     response: Response,
-    serial_number: constr(pattern='^[0-9A-F]+$'),
+    serial_number: constr(pattern='^[0-9A-F]+$'),  # type: ignore[valid-type]
     data: Annotated[RequestData, Depends(SignedRequest())],
     accept: str = Header(
         default='*/*', pattern=r'(application/pem\-certificate\-chain|\*/\*)', description='Certificates are only supported as "application/pem-certificate-chain"'
@@ -72,9 +72,9 @@ async def revoke_cert(data: Annotated[RequestData[RevokeCertPayload], Depends(Si
     if not ok:
         raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='alreadyRevoked', detail='cert already revoked or not accessible', new_nonce=data.new_nonce)
     async with db.transaction(readonly=True) as sql:
-        revocations = [(sn, rev_at) async for sn, rev_at in sql("""select serial_number, revoked_at from certificates where revoked_at is not null""")]
+        revocation_list = [(sn, rev_at) async for sn, rev_at in sql("""select serial_number, revoked_at from certificates where revoked_at is not null""")]
         revoked_at = await sql.value("""select now()""")
-    revocations = set(revocations)
+    revocations = set(revocation_list)
     revocations.add((serial_number, revoked_at))
     await ca_service.revoke_cert(serial_number=serial_number, revocations=revocations)
     async with db.transaction() as sql:

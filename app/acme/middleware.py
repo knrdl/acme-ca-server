@@ -15,15 +15,15 @@ from .nonce import service as nonce_service
 
 
 class RsaJwk(BaseModel):
-    n: constr(min_length=1)
-    e: constr(min_length=1)
+    n: constr(min_length=1)  # type: ignore[valid-type]
+    e: constr(min_length=1)  # type: ignore[valid-type]
     kty: Literal['RSA']
 
 
 class EcJwk(BaseModel):
     crv: Literal['P-256']
-    x: constr(min_length=1)
-    y: constr(min_length=1)
+    x: constr(min_length=1)  # type: ignore[valid-type]
+    y: constr(min_length=1)  # type: ignore[valid-type]
     kty: Literal['EC']
 
 
@@ -44,7 +44,7 @@ class Protected(BaseModel):
     alg: Literal['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512']
     jwk: RsaJwk | EcJwk | None = None  # new user
     kid: str | None = None  # existing user
-    nonce: constr(min_length=1)
+    nonce: constr(min_length=1)  # type: ignore[valid-type]
     url: AnyHttpUrl
 
     @model_validator(mode='after')
@@ -59,7 +59,7 @@ class Protected(BaseModel):
 class SignedRequest:  # pylint: disable=too-few-public-methods
     def __init__(
         self,
-        payload_model: BaseModel = None,
+        payload_model: BaseModel | None = None,
         *,
         allow_new_account: bool = False,
         allow_blocked_account: bool = False,
@@ -81,9 +81,9 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         request: Request,
         response: Response,
         content_type: str = Header(..., pattern=r'^application/jose\+json$', description='Content Type must be "application/jose+json"'),
-        protected: constr(min_length=1) = Body(...),
-        signature: constr(min_length=1) = Body(...),
-        payload: constr(min_length=0) = Body(...),
+        protected: constr(min_length=1) = Body(...),  # type: ignore[valid-type]
+        signature: constr(min_length=1) = Body(...),  # type: ignore[valid-type]
+        payload: constr(min_length=0) = Body(...),  # type: ignore[valid-type]
     ):
         protected_data = Protected(**json.loads(base64url_decode(protected)))
 
@@ -110,6 +110,8 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
             key = jwcrypto.jwk.JWK()
             key.import_key(**key_data)
         elif self.allow_new_account:
+            if not protected_data.jwk:
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='badPublicKey', detail='JWK must be RSA or EC P-256')
             account_id = None
             key = jwcrypto.jwk.JWK()
             key.import_key(**protected_data.jwk.model_dump())
@@ -126,7 +128,7 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
             raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, exctype='unauthorized', detail='signature check failed') from exc
 
         if self.payload_model and payload:
-            payload_data = self.payload_model(**json.loads(base64url_decode(payload)))
+            payload_data = self.payload_model(**json.loads(base64url_decode(payload)))  # type: ignore[operator]
         else:
             payload_data = None
 
@@ -136,4 +138,4 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         # use append because there can be multiple Link-Headers with different rel targets
         response.headers.append('Link', f'<{settings.external_url}acme/directory>;rel="index"')
 
-        return RequestData[self.payload_model](payload=payload_data, key=key, account_id=account_id, new_nonce=new_nonce)
+        return RequestData[self.payload_model](payload=payload_data, key=key, account_id=account_id, new_nonce=new_nonce)  # type: ignore[name-defined]

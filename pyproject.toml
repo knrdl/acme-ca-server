@@ -37,5 +37,11 @@ addopts = [
 [tool.ruff]
 line-length = 179
 
+[tool.ruff.lint]
+extend-select = ["I"]
+
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.mypy]
+disable_error_code = ["import-untyped"]

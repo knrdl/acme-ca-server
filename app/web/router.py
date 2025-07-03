@@ -49,7 +49,7 @@ if settings.web.enable_public_log:
         return await template_engine.get_template('cert-log.html').render_async(**default_params, certs=certs)
 
     @api.get('/certificates/{serial_number}', response_class=Response, responses={200: {'content': {'application/pem-certificate-chain': {}}}})
-    async def download_certificate(serial_number: constr(pattern='^[0-9A-F]+$')):
+    async def download_certificate(serial_number: constr(pattern='^[0-9A-F]+$')):  # type: ignore[valid-type]
         async with db.transaction(readonly=True) as sql:
             pem_chain = await sql.value("""select chain_pem from certificates where serial_number = $1""", serial_number)
         if not pem_chain:
@@ -87,9 +87,9 @@ if settings.web.enable_public_log:
 else:
 
     @api.get('/certificates')
-    async def certificate_log():
+    async def certificate_log_disabled():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This page is disabled')
 
     @api.get('/domains')
-    async def domain_log():
+    async def domain_log_disabled():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This page is disabled')

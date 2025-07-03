@@ -19,7 +19,7 @@ if settings.ca.enabled:
     from .service import build_crl_sync
 
     @router.get('/{serial_number}/crl', response_class=Response, responses={200: {'content': {'application/pkix-crl': {}}}})
-    async def download_crl(serial_number: constr(pattern='^[0-9A-F]+$')):
+    async def download_crl(serial_number: constr(pattern='^[0-9A-F]+$')):  # type: ignore[valid-type]
         async with db.transaction(readonly=True) as sql:
             crl_pem = await sql.value("""select crl_pem from cas where serial_number = $1""", serial_number)
         return Response(content=crl_pem, media_type='application/pkix-crl')

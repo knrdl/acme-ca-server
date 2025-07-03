@@ -39,7 +39,7 @@ app = FastAPI(
     description=settings.web.app_description,
 )
 app.add_middleware(
-    web.middleware.SecurityHeadersMiddleware,
+    web.middleware.SecurityHeadersMiddleware,  # type: ignore[arg-type]
     content_security_policy={
         '/acme/': "base-uri 'self'; default-src 'none';",
         '/endpoints': "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-src 'none'; img-src 'self' data:;",

@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from config import settings
 from fastapi import APIRouter, Depends, Response, status
@@ -67,6 +67,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
     response.headers.append('Link', f'<{settings.external_url}authorization/{authz_id}>;rel="up"')
 
     if must_solve_challenge:
+        err: Literal[False] | ACMEException
         try:
             await service.check_challenge_is_fulfilled(domain=domain, token=token, jwk=data.key, new_nonce=data.new_nonce)
             err = False

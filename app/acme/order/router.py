@@ -19,17 +19,17 @@ from ..middleware import RequestData, SignedRequest
 
 class NewOrderDomain(BaseModel):
     type: Literal['dns']  # noqa: A003 (allow shadowing builtin "type")
-    value: constr(pattern=f'^{settings.acme.target_domain_regex.pattern}$')
+    value: constr(pattern=f'^{settings.acme.target_domain_regex.pattern}$')  # type: ignore[valid-type]
 
 
 class NewOrderPayload(BaseModel):
-    identifiers: conlist(NewOrderDomain, min_length=1)
+    identifiers: conlist(NewOrderDomain, min_length=1)  # type: ignore[valid-type]
     notBefore: Optional[datetime] = None
     notAfter: Optional[datetime] = None
 
 
 class FinalizeOrderPayload(BaseModel):
-    csr: constr(min_length=1, max_length=1 * 1024**2)
+    csr: constr(min_length=1, max_length=1 * 1024**2)  # type: ignore[valid-type]
 
 
 def order_response(
@@ -179,16 +179,18 @@ async def finalize_order(response: Response, order_id: str, data: Annotated[Requ
 
     csr, csr_pem, subject_domain, san_domains = await check_csr(csr_bytes, ordered_domains=domains, new_nonce=data.new_nonce)
 
+    err: None | ACMEException
+
     try:
         signed_cert = await ca_service.sign_csr(csr, subject_domain, san_domains)
-        err = False
+        err = None
     except ACMEException as e:
         err = e
     except Exception as e:
         err = ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, exctype='serverInternal', detail=str(e), new_nonce=data.new_nonce)
         logger.warning('sign csr failed (account: %s)', data.account_id, exc_info=True)
 
-    if err is False:
+    if err is None:
         cert_sn = SerialNumberConverter.int2hex(signed_cert.cert.serial_number)
 
         async with db.transaction() as sql:

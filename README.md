@@ -189,3 +189,12 @@ flowchart LR
     authorizations -->|1:1| challenges
     orders -->|1:0..1| certificates
 ```
+
+### Tests
+
+```shell
+cd tests/e2e
+./run.sh
+cd ../pytest
+./run.sh
+```

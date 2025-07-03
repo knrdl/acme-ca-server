@@ -19,7 +19,7 @@ contactType = conlist(
     max_length=1,
 )
 if not settings.acme.mail_required:
-    contactType = contactType | conlist(str, min_length=0, max_length=0) | None
+    contactType = contactType | conlist(str, min_length=0, max_length=0) | None  # type: ignore[assignment]
 
 
 class NewOrViewAccountPayload(BaseModel):
@@ -29,18 +29,18 @@ class NewOrViewAccountPayload(BaseModel):
 
 
 class NewAccountPayload(BaseModel):
-    contact: contactType = []
-    termsOfServiceAgreed: tosAgreedType = None
+    contact: contactType = []  # type: ignore[valid-type]
+    termsOfServiceAgreed: tosAgreedType = None  # type: ignore[valid-type]
     onlyReturnExisting: Literal[False] = False
 
     @property
     def mail_addr(self) -> str | None:
-        return self.contact[0].removeprefix('mailto:') if self.contact else None
+        return self.contact[0].removeprefix('mailto:') if self.contact else None  # type: ignore[index]
 
 
 class UpdateAccountPayload(BaseModel):
     status: Literal['deactivated'] | None = None
-    contact: contactType | None = None
+    contact: contactType | None = None  # type: ignore[valid-type]
 
     @property
     def mail_addr(self) -> str | None:
