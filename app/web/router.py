@@ -1,13 +1,13 @@
 from pathlib import Path
 from typing import Literal
 
+from config import settings
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 from pydantic import constr
 
 import db
-from config import settings
 
 template_engine = Environment(loader=FileSystemLoader(Path(__file__).parent / 'templates'), enable_async=True, autoescape=True)
 

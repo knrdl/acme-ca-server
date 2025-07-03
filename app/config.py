@@ -1,12 +1,11 @@
-from datetime import timedelta
 import sys
-from typing import Any, Literal, Optional, Pattern
+from datetime import timedelta
 from pathlib import Path
-
-from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Any, Literal, Optional, Pattern
 
 from logger import logger
+from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class WebSettings(BaseSettings):

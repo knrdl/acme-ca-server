@@ -1,7 +1,8 @@
 from pathlib import Path
 
-import db
 from logger import logger
+
+import db
 
 
 async def run():

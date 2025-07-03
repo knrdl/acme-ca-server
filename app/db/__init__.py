@@ -2,10 +2,9 @@ import json
 from typing import Any
 
 import asyncpg
-from pydantic import BaseModel
-
 from config import settings
 from logger import logger
+from pydantic import BaseModel
 
 _pool: asyncpg.pool.Pool = None
 

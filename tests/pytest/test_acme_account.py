@@ -1,3 +1,6 @@
+import pytest
+import pydantic
+
 _mail_address = 'mailto:dummy@example.com'
 
 
@@ -79,6 +82,22 @@ def test_should_update_account_contact(signed_request, directory):
     assert response.status_code == 200
     assert response.json()['contact'] == []
 
+
+def test_should_not_create_account_with_invalid_contact(signed_request, directory):
+    with pytest.raises(pydantic.ValidationError) as excinfo:
+        signed_request(directory['newAccount'], signed_request.nonce, {'contact': ['tel:1234']})
+    assert "NewAccountPayload" in str(excinfo.value)
+
+
+def test_should_not_update_account_with_invalid_contact(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    assert response.status_code == 201
+    assert response.json()['contact'] == []
+    account_url = response.headers['Location']
+
+    with pytest.raises(pydantic.ValidationError) as excinfo:
+        response = signed_request(account_url, signed_request.nonce, {'contact': ['tel:1234']}, account_url)
+    assert "UpdateAccountPayload" in str(excinfo.value)
 
 
 def test_should_return_existing_account(signed_request, directory):

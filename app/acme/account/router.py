@@ -1,13 +1,13 @@
 import secrets
 from typing import Annotated, Literal
 
+import mail
+from config import settings
 from fastapi import APIRouter, Depends, Response, status
+from logger import logger
 from pydantic import BaseModel, conlist, constr
 
 import db
-import mail
-from config import settings
-from logger import logger
 
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest

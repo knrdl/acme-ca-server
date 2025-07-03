@@ -3,6 +3,11 @@ __version__ = '0.0.0'  # replaced during build, do not change
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import acme
+import ca
+import web
+from acme.exceptions import ACMEException
+from config import settings
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
@@ -11,13 +16,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-import acme
-import ca
 import db
 import db.migrations
-import web
-from acme.exceptions import ACMEException
-from config import settings
 
 
 @asynccontextmanager

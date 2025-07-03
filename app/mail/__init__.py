@@ -4,9 +4,8 @@ from pathlib import Path
 from typing import Literal
 
 from aiosmtplib import SMTP
-from jinja2 import Environment, FileSystemLoader
-
 from config import settings
+from jinja2 import Environment, FileSystemLoader
 from logger import logger
 
 template_engine = Environment(loader=FileSystemLoader(Path(__file__).parent / 'templates'), enable_async=True, autoescape=True)  # pylint: disable=duplicate-code

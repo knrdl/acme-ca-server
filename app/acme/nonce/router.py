@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Response, status
-
 from config import settings
+from fastapi import APIRouter, Response, status
 
 from .service import generate
 
