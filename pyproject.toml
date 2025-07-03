@@ -19,6 +19,9 @@ Issues = "https://github.com/knrdl/acme-ca-server/issues"
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
+[tool.isort]
+line_length = 179
+sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
 
 [tool.pylint]
 max-line-length = 179

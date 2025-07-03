@@ -1,14 +1,14 @@
-from fastapi.testclient import TestClient
-from typing import Generator
+import asyncio
+import json
 import os
 import shutil
-import pytest
-from pathlib import Path
 import subprocess
-import asyncio
+from pathlib import Path
+from typing import Generator
 
 import jwcrypto.jwk
-import json
+import pytest
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture(scope='session')

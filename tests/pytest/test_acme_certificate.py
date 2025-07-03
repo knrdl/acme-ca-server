@@ -1,11 +1,11 @@
 from unittest import mock
+
 import httpx
+import jwcrypto
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
-import jwcrypto
 
 from .utils import build_csr
-
 
 _mail_address = 'mailto:dummy@example.com'
 _host = 'example.com'

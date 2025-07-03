@@ -1,5 +1,5 @@
-import pytest
 import pydantic
+import pytest
 
 _mail_address = 'mailto:dummy@example.com'
 
@@ -35,20 +35,24 @@ def test_should_return_created_new_account_if_not_exist(signed_request, director
     assert response.json()['contact'] == [_mail_address]
     assert response.json()['orders'] == response.headers['Location'] + '/orders'
 
+
 def test_should_create_account_with_empty_contact(signed_request, directory):
     response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': []})
     assert response.status_code == 201
     assert response.json()['contact'] == []
+
 
 def test_should_create_account_with_missing_contact(signed_request, directory):
     response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': None})
     assert response.status_code == 201
     assert response.json()['contact'] == []
 
+
 def test_should_create_account_without_contact(signed_request, directory):
     response = signed_request(directory['newAccount'], signed_request.nonce, {})
     assert response.status_code == 201
     assert response.json()['contact'] == []
+
 
 def test_should_update_account_contact(signed_request, directory):
     # create account without mail
@@ -66,7 +70,7 @@ def test_should_update_account_contact(signed_request, directory):
     assert response.status_code == 200
     assert response.json()['contact'] == ['mailto:test123@example.com']
 
-    #don't remove mail addr and check is unchanged
+    # don't remove mail addr and check is unchanged
     response = signed_request(account_url, signed_request.nonce, {}, account_url)
     assert response.status_code == 200, response.json()
 
@@ -86,7 +90,7 @@ def test_should_update_account_contact(signed_request, directory):
 def test_should_not_create_account_with_invalid_contact(signed_request, directory):
     with pytest.raises(pydantic.ValidationError) as excinfo:
         signed_request(directory['newAccount'], signed_request.nonce, {'contact': ['tel:1234']})
-    assert "NewAccountPayload" in str(excinfo.value)
+    assert 'NewAccountPayload' in str(excinfo.value)
 
 
 def test_should_not_update_account_with_invalid_contact(signed_request, directory):
@@ -97,7 +101,7 @@ def test_should_not_update_account_with_invalid_contact(signed_request, director
 
     with pytest.raises(pydantic.ValidationError) as excinfo:
         response = signed_request(account_url, signed_request.nonce, {'contact': ['tel:1234']}, account_url)
-    assert "UpdateAccountPayload" in str(excinfo.value)
+    assert 'UpdateAccountPayload' in str(excinfo.value)
 
 
 def test_should_return_existing_account(signed_request, directory):
