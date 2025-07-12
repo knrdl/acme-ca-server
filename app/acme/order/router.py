@@ -68,7 +68,7 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
             new_nonce=data.new_nonce,
         )
 
-    domains: list[str] = list(set([identifier.value for identifier in data.payload.identifiers]))
+    domains: list[str] = list({identifier.value for identifier in data.payload.identifiers})  # deduplicate domains
 
     def generate_tokens_sync(domains):
         order_id = secrets.token_urlsafe(16)
