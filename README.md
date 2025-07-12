@@ -197,4 +197,6 @@ cd tests/e2e
 ./run.sh
 cd ../pytest
 ./run.sh
+cd coverage
+python3 -m http.server  # coverage report at localhost:8000
 ```

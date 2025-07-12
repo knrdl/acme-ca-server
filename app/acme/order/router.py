@@ -68,7 +68,7 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
             new_nonce=data.new_nonce,
         )
 
-    domains: list[str] = [identifier.value for identifier in data.payload.identifiers]
+    domains: list[str] = list(set([identifier.value for identifier in data.payload.identifiers]))
 
     def generate_tokens_sync(domains):
         order_id = secrets.token_urlsafe(16)
@@ -113,7 +113,7 @@ async def view_order(response: Response, order_id: str, data: Annotated[RequestD
             data.account_id,
         )
         if not record:
-            raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, exctype='malformed', detail='specified order not found for current account', new_nonce=data.new_nonce)
+            raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, exctype='malformed', detail='Unknown order for current account.', new_nonce=data.new_nonce)
         order_status, expires_at, err = record
         authzs = [row async for row in sql("""select id, domain from authorizations where order_id = $1""", order_id)]
         cert_record = await sql.record("""select serial_number, not_valid_before, not_valid_after from certificates where order_id = $1""", order_id)
@@ -150,7 +150,7 @@ async def finalize_order(response: Response, order_id: str, data: Annotated[Requ
             data.account_id,
         )
     if not record:
-        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, exctype='malformed', detail='Unknown order for specified account.', new_nonce=data.new_nonce)
+        raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, exctype='malformed', detail='Unknown order for current account.', new_nonce=data.new_nonce)
     order_status, expires_at, is_expired = record
     if order_status != 'ready':
         raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, exctype='orderNotReady', detail=f'order status is: {order_status}', new_nonce=data.new_nonce)
