@@ -13,7 +13,7 @@ CREATE DOMAIN random_id AS TEXT CHECK( length(VALUE) > 20 );
 -- hex representation of a certificate serial number
 CREATE DOMAIN serial_number AS TEXT CHECK( VALUE ~ '^[0-9A-F]+$');
 
--- these acme error types can be stored in db, list not exhausive
+-- these acme error types can be stored in db, list not exhaustive
 CREATE TYPE acme_error_type AS ENUM ('connection', 'incorrectResponse', 'serverInternal', 'malformed', 'unauthorized', 'dns');
 CREATE TYPE acme_error AS (
     type        acme_error_type,
