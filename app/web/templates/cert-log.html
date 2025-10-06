@@ -8,6 +8,11 @@
         padding-bottom: .5rem;
     }
 
+    form {
+        border: 1px solid #ccc;
+        padding: 2rem;
+    }
+
     ul {
         display: inline;
         list-style: disc;
@@ -15,9 +20,6 @@
 
     li {
         display: inline list-item;
-    }
-
-    li {
         margin-left: 1rem;
     }
 
@@ -36,6 +38,31 @@
 {% endblock %}
 {% block content %}
 <h2>Certificates</h2>
+
+<form method="get" action="">
+    <fieldset>
+        <legend>
+            <h3>filter certificate status</h3>
+        </legend>
+        <div class="row">
+            <label>
+                <input type="radio" name="certstatus" value="all" {{ "checked" if certstatus=="all" }}> all
+            </label>
+            <label>
+                <input type="radio" name="certstatus" value="valid" {{ "checked" if certstatus=="valid" }}> valid
+            </label>
+            <label>
+                <input type="radio" name="certstatus" value="invalid" {{ "checked" if certstatus=="invalid" }}> invalid
+            </label>
+        </div>
+    </fieldset>
+    <label>
+        <h3>filter domain name</h3>
+        <input type="text" name="domainfilter" value="{{domainfilter}}" placeholder="searchtext">
+    </label>
+    <button type="submit">filter</button>
+</form>
+
 <table>
     <thead>
         <tr>
@@ -82,4 +109,6 @@
         {% endfor %}
     </tbody>
 </table>
+
+<p>Output is limited to the first 1000 results.</p>
 {% endblock %}

@@ -29,23 +29,34 @@ async def index():
 if settings.web.enable_public_log:
 
     @api.get('/certificates', response_class=HTMLResponse)
-    async def certificate_log():
+    async def certificate_log(domainfilter: str = '', certstatus: Literal['all', 'valid', 'invalid'] = 'all'):
         async with db.transaction(readonly=True) as sql:
             certs = [
                 record
-                async for record in sql("""
-                select
-                    serial_number, not_valid_before, not_valid_after, revoked_at,
-                    (not_valid_after > now() and revoked_at is null) as is_valid,
-                    (not_valid_after - not_valid_before) as lifetime,
-                    (now() - not_valid_before) as age,
-                    array((select domain from authorizations authz where authz.order_id = cert.order_id order by domain)) as domains
-                from certificates cert
-                group by serial_number
-                order by not_valid_after desc
-            """)
+                async for record in sql(
+                    """
+                    with data as (
+                        select
+                            serial_number, not_valid_before, not_valid_after, revoked_at,
+                            (not_valid_after > now() and revoked_at is null) as is_valid,
+                            (not_valid_after - not_valid_before) as lifetime,
+                            (now() - not_valid_before) as age,
+                            array_agg(domain order by domain) as domains
+                        from certificates cert
+                        join authorizations authz on authz.order_id = cert.order_id
+                        where ($1::text = '' or authz.domain ilike '%' || $1::text || '%')
+                        group by serial_number
+                    )
+                    select * from data
+                    where ($2 = 'all' or ($2 = 'valid' and is_valid) or ($2 = 'invalid' and not is_valid))
+                    order by not_valid_after desc
+                    limit 1000
+                    """,
+                    domainfilter.replace('*', '%'),
+                    certstatus,
+                )
             ]
-        return await template_engine.get_template('cert-log.html').render_async(**default_params, certs=certs)
+        return await template_engine.get_template('cert-log.html').render_async(**default_params, certs=certs, certstatus=certstatus, domainfilter=domainfilter)
 
     @api.get('/certificates/{serial_number}', response_class=Response, responses={200: {'content': {'application/pem-certificate-chain': {}}}})
     async def download_certificate(serial_number: constr(pattern='^[0-9A-F]+$')):  # type: ignore[valid-type]
