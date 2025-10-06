@@ -110,26 +110,27 @@ docker run --rm --pull always --name test_certbot5a --net test_net \
      --domains host1.example.org --domains host2.example.org 2>&1 | grep urn:ietf:params:acme:error:malformed
 
 
+# TODO: disable traefik as lego requires a HTTPS server now
 # Traefik
 
-rm -rf traefikdata
-mkdir traefikdata
+# rm -rf traefikdata
+# mkdir traefikdata
 
-echo "Traefik 1"
-docker run -dit --rm --pull always --name test_traefik --net test_net -v "$PWD/traefik.yaml:/file.yaml:ro" -v "$PWD/traefikdata:/acme" -p8082:80 -p8083:8080 \
-        --network-alias host20.example.org docker.io/traefik:latest --log.level=DEBUG --providers.file.filename=/file.yaml --api.insecure=true --api.dashboard=true \
-        --entrypoints.web.address=:80 --entrypoints.web-secure.address=:443 \
-          --certificatesresolvers.myresolver.acme.email=traefik@example.org \
-          --certificatesresolvers.myresolver.acme.storage=/acme/acme.json \
-          --certificatesresolvers.myresolver.acme.httpChallenge.entryPoint=web \
-          --certificatesresolvers.myresolver.acme.caServer=http://acme.example.org:8080/acme/directory
+# echo "Traefik 1"
+# docker run -dit --rm --pull always --name test_traefik --net test_net -v "$PWD/traefik.yaml:/file.yaml:ro" -v "$PWD/traefikdata:/acme" -p8082:80 -p8083:8080 \
+#         --network-alias host20.example.org docker.io/traefik:latest --log.level=DEBUG --providers.file.filename=/file.yaml --api.insecure=true --api.dashboard=true \
+#         --entrypoints.web.address=:80 --entrypoints.web-secure.address=:443 \
+#           --certificatesresolvers.myresolver.acme.email=traefik@example.org \
+#           --certificatesresolvers.myresolver.acme.storage=/acme/acme.json \
+#           --certificatesresolvers.myresolver.acme.httpChallenge.entryPoint=web \
+#           --certificatesresolvers.myresolver.acme.caServer=http://acme.example.org:8080/acme/directory
 
-while true; do
-        cat traefikdata/acme.json | jq '.myresolver.Certificates[0].domain.main == "host20.example.org"' | grep 'true' && break
-        sleep 1
-done
+# while true; do
+#         cat traefikdata/acme.json | jq '.myresolver.Certificates[0].domain.main == "host20.example.org"' | grep 'true' && break
+#         sleep 1
+# done
 
-docker kill test_traefik
+# docker kill test_traefik
 
 # Caddy
 
