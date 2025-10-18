@@ -14,13 +14,28 @@ A self-hosted ACME server with a built-in CA and optional web interface.
 Tested with [Certbot](https://certbot.eff.org/), [Traefik](https://traefik.io/traefik/), [Caddy](https://caddyserver.com/), [uacme](https://github.com/ndilieto/uacme), [acme.sh](https://github.com/acmesh-official/acme.sh).
 
 ## Setup
+### 1. Generate a new CA root certificate (or use an existing one)
 
-### 1. Generate a new CA root certificate (or use an existing cert)
+You can generate a new root CA key and certificate using OpenSSL:
 
-```
-$ openssl genrsa -out ca.key 4096
-$ openssl req -new -x509 -nodes -days 3650 -subj "/C=DE/O=Demo" -key ca.key -out ca.pem
-```
+```bash
+openssl genrsa -out ca.key 4096
+openssl req -new -x509 -nodes -days 3650 -subj "/C=DE/O=Demo" -key ca.key -out ca.pem
+````
+
+These two files (`ca.key` and `ca.pem`) will be imported into the container on first startup.
+
+> **Important:**
+> The container runs as a non-root user, so it must be able to read the key and certificate files.
+> Make sure the permissions are set correctly:
+>
+> ```bash
+> chmod 644 ca.key ca.pem
+> chown 1000:1000 ca.key ca.pem   # optional, ensures correct ownership
+> ```
+
+Once imported successfully, the CA data is stored in the database and you can remove the key files.
+
 
 ### 2. Deploy the container
 
@@ -36,8 +51,8 @@ services:
     environment:
       EXTERNAL_URL: http://localhost:8080
       DB_DSN: postgresql://postgres:secret@db/postgres
-    # ports:
-    #   - "8080:8080"
+    ports:
+      - "8080:8080"
     networks:
       - net
     volumes:
