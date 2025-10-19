@@ -47,7 +47,7 @@ services:
     image: knrdl/acme-ca-server
     restart: always
     environment:
-      EXTERNAL_URL: http://localhost:8080
+      EXTERNAL_URL: https://acme.mydomain.org
       DB_DSN: postgresql://postgres:secret@db/postgres
     networks:
       - db_net
@@ -61,7 +61,7 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
-      POSTGRES_PASSWORD: secret
+      POSTGRES_PASSWORD: secret  # use a strong password: `openssl rand -hex 32`
     networks:
       - db_net
     volumes:
@@ -84,11 +84,14 @@ The app listens on port **8080** for HTTP traffic.
 > services:
 >   acme-ca-server:
 >     # ...
+>     environment:
+>       EXTERNAL_URL: http://localhost:8080
+>     # ...
 >     ports:
 >       - "8080:8080"
 >     # ...
 > ```
-> Don't do this in production. TLS usage is adviced.
+> Don't do this in production. TLS usage is advised.
 
 ### 4. Test with certbot
 
