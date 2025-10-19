@@ -18,20 +18,19 @@ Tested with [Certbot](https://certbot.eff.org/), [Traefik](https://traefik.io/tr
 
 You can generate a new root CA key and certificate using OpenSSL:
 
-```bash
+```shell
 openssl genrsa -out ca.key 4096
 openssl req -new -x509 -nodes -days 3650 -subj "/C=DE/O=Demo" -key ca.key -out ca.pem
 ````
 
 These two files (`ca.key` and `ca.pem`) will be imported into the container on first startup.
 
-> **Important:**
 > The container runs as a non-root user, so it must be able to read the key and certificate files.
 > Make sure the permissions are set correctly:
 >
-> ```bash
-> chmod 644 ca.key ca.pem
-> chown 1000:1000 ca.key ca.pem   # optional, ensures correct ownership
+> ```shell
+> chmod 600 ca.key ca.pem  # protect key from other users
+> chown 1000:1000 ca.key ca.pem  # ensures correct ownership
 > ```
 
 Once imported successfully, the CA data is stored in the database and you can remove the key files.
@@ -42,7 +41,6 @@ Once imported successfully, the CA data is stored in the database and you can re
 Docker Compose snippet:
 
 ```yaml
-version: '2.4'
 services:
 
   acme-ca-server:
@@ -51,10 +49,9 @@ services:
     environment:
       EXTERNAL_URL: http://localhost:8080
       DB_DSN: postgresql://postgres:secret@db/postgres
-    ports:
-      - "8080:8080"
     networks:
-      - net
+      - db_net
+      - reverse_proxy_net
     volumes:
       - ./ca.key:/import/ca.key:ro # needed once to import new ca
       - ./ca.pem:/import/ca.pem:ro # needed once to import new ca
@@ -66,20 +63,32 @@ services:
     environment:
       POSTGRES_PASSWORD: secret
     networks:
-      - net
+      - db_net
     volumes:
       - ./db:/var/lib/postgresql/data
     mem_limit: 250m
 
 networks:
-  net:
+  db_net:
+  reverse_proxy_net:  # see next step
 ```
 
 ### 3. Reverse proxy
 
 Serve the app securely using a TLS-terminating reverse proxy (like Apache, Nginx, Traefik or Caddy), e.g. at https://acme.mydomain.org
 
-The app listens on port 8080 for http traffic.
+The app listens on port **8080** for HTTP traffic.
+
+> For a quick test you can skip the reverse proxy and expose the service directly:
+> ```yaml
+> services:
+>   acme-ca-server:
+>     # ...
+>     ports:
+>       - "8080:8080"
+>     # ...
+> ```
+> Don't do this in production. TLS usage is adviced.
 
 ### 4. Test with certbot
 
