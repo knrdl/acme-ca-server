@@ -68,7 +68,9 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
             public_key=csr.public_key(),
         )
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
-        .add_extension(
+    )
+    if settings.ca.cert_cdp_enabled:
+        cert_builder = cert_builder.add_extension(
             x509.CRLDistributionPoints(
                 distribution_points=[
                     x509.DistributionPoint(
@@ -81,6 +83,7 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
             ),
             critical=False,
         )
+    cert_builder = (cert_builder
         .add_extension(x509.SubjectAlternativeName(general_names=[x509.DNSName(domain) for domain in san_domains]), critical=False)
         .add_extension(
             x509.KeyUsage(

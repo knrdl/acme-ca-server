@@ -20,6 +20,7 @@ class CaSettings(BaseSettings):
     enabled: bool = True
     cert_lifetime: timedelta = timedelta(days=60)
     crl_lifetime: timedelta = timedelta(days=7)
+    cert_cdp_enabled: bool = True
     encryption_key: Optional[SecretStr] = None  # encryption of private keys in database
     import_dir: Path = '/import'  # type: ignore[assignment]
 
