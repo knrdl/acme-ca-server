@@ -58,17 +58,14 @@ def load_ca_sync(*, cert_pem, key_pem_enc):
 def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, csr: x509.CertificateSigningRequest, subject_domain: str, san_domains: list[str]):
     ca_id = SerialNumberConverter.int2hex(ca_cert.serial_number)
 
-    cert_builder = (
-        x509.CertificateBuilder(
-            issuer_name=ca_cert.subject,
-            subject_name=x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, subject_domain)]),
-            serial_number=x509.random_serial_number(),
-            not_valid_before=datetime.now(timezone.utc),
-            not_valid_after=datetime.now(timezone.utc) + settings.ca.cert_lifetime,
-            public_key=csr.public_key(),
-        )
-        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
-    )
+    cert_builder = x509.CertificateBuilder(
+        issuer_name=ca_cert.subject,
+        subject_name=x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, subject_domain)]),
+        serial_number=x509.random_serial_number(),
+        not_valid_before=datetime.now(timezone.utc),
+        not_valid_after=datetime.now(timezone.utc) + settings.ca.cert_lifetime,
+        public_key=csr.public_key(),
+    ).add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
     if settings.ca.cert_cdp_enabled:
         cert_builder = cert_builder.add_extension(
             x509.CRLDistributionPoints(
@@ -83,8 +80,8 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
             ),
             critical=False,
         )
-    cert_builder = (cert_builder
-        .add_extension(x509.SubjectAlternativeName(general_names=[x509.DNSName(domain) for domain in san_domains]), critical=False)
+    cert_builder = (
+        cert_builder.add_extension(x509.SubjectAlternativeName(general_names=[x509.DNSName(domain) for domain in san_domains]), critical=False)
         .add_extension(
             x509.KeyUsage(
                 digital_signature=True,
