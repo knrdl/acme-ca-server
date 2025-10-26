@@ -49,9 +49,12 @@ function stop_server() {
 
 start_server
 
+echo healthchecks
+
 curl --fail --silent localhost:8080 > /dev/null
 curl --fail --silent localhost:8080/certificates > /dev/null
 curl --fail --silent localhost:8080/endpoints > /dev/null
+! curl --fail --silent localhost:8080/ca/123456/crl > /dev/null  # request to unknown CA should not result in a 200 OK response
 
 # certbot
 

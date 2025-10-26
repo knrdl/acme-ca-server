@@ -5,7 +5,7 @@ from acme.certificate.service import SerialNumberConverter
 from config import settings
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, HTTPException, Response, status
 from logger import logger
 from pydantic import constr
 
@@ -21,7 +21,10 @@ if settings.ca.enabled:
     async def download_crl(serial_number: constr(pattern='^[0-9A-F]+$')):  # type: ignore[valid-type]
         async with db.transaction(readonly=True) as sql:
             crl_pem = await sql.value("""select crl_pem from cas where serial_number = $1""", serial_number)
-        return Response(content=crl_pem, media_type='application/pkix-crl')
+        if crl_pem:
+            return Response(content=crl_pem, media_type='application/pkix-crl')
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='unknown CA')
 
     async def init():
         if (settings.ca.import_dir / 'ca.pem').is_file() and (settings.ca.import_dir / 'ca.key').is_file():
