@@ -39,7 +39,7 @@ class ACMEException(Exception):
     status_code: int
     new_nonce: str | None
 
-    def __init__(
+    def __init__(  # noqa: B042
         self,
         *,
         exctype: AcmeExceptionTypes,
@@ -47,6 +47,8 @@ class ACMEException(Exception):
         status_code: int = status.HTTP_400_BAD_REQUEST,
         new_nonce: str | None = None,
     ) -> None:
+        super().__init__(self.value)
+
         self.headers = {'Link': f'<{settings.external_url}acme/directory>;rel="index"'}
         # when a new nonce is already created it should also be used in the exception case
         # however if there is none yet, a new one gets generated in as_response()
