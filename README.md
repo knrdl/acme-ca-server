@@ -114,6 +114,7 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 | CA_ENABLED        | `True`       | whether the internal CA is enabled, set this to false when providing a custom CA implementation  |
 | CA_CERT_LIFETIME        | 60 days (`60d`)       | how often certs must be replaced by the ACME client  |
 | CA_CRL_LIFETIME        | 7 days (`7d`)       | how often the certificate revocation list will be rebuilt (despite rebuild on every certificate revocation)  |
+| CA_CERT_CDP_ENABLED    | `True` | Add CDP (Certificate Revocation List Distribution Point) URL to certificates, so clients SHOULD check certificates for revocation. When `False`, the CDP is omitted from certificates, preventing clients from checking revocation status and making revocation ineffective. |
 | CA_ENCRYPTION_KEY        | will be generated if not provided       | the key to protect the CA private keys at rest (encrypted in the database)  |
 | CA_IMPORT_DIR        | `/import`       | where the *ca.pem* and *ca.key* are initially imported from, see 2. <br>CA rollover is as simple as placing a new cert and key in this directory. The server will detect and import them at startup. |
 | MAIL_ENABLED        | `False`       | if sending mails is enabled              |
