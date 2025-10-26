@@ -26,7 +26,7 @@ openssl genrsa -out ca.key 4096
 openssl req -new -x509 -nodes -days 3650 -subj "/C=XX/O=Test" -key ca.key -out ca.pem -set_serial "0xDEADBEAF"
 chmod a+r {ca.key,ca.pem}
 
-function run_server() {
+function start_server() {
      EXTRA_ARGS=$@
      docker run -dit --name test_server --net test_net -p8080:8080 --network-alias acme.example.org \
         -v "$PWD/ca.key:/import/ca.key:ro" -v "$PWD/ca.pem:/import/ca.pem:ro" \
@@ -37,10 +37,18 @@ function run_server() {
         -e CA_ENCRYPTION_KEY="DaxNj1bTiCsk6aQiY43hz2jDqBZAU5kta1uNBzp_yqo=" \
         ${EXTRA_ARGS} \
         acmeserver
-}
-run_server
 
-sleep 5
+     sleep 5
+}
+
+function stop_server() {
+     docker kill test_server
+     docker logs test_server
+     docker rm test_server
+}
+
+start_server
+
 curl --fail --silent localhost:8080 > /dev/null
 curl --fail --silent localhost:8080/certificates > /dev/null
 curl --fail --silent localhost:8080/endpoints > /dev/null
@@ -194,14 +202,10 @@ docker run --rm --name test_cdp1a --net test_net -v "$PWD/acmeshdata:/acme.sh" -
      --accountemail cdp1a@example.org --server http://acme.example.org:8080/acme/directory
 openssl asn1parse -in "$PWD/acmeshdata/hostcdp1a.example.org_ecc/hostcdp1a.example.org.cer" | grep 'X509v3 CRL Distribution Points' > /dev/null
 
-docker kill test_server
-docker logs test_server
-docker rm test_server
+stop_server
 
 # Re-Run server with CA_CERT_CDP_ENABLED=false
-run_server -e CA_CERT_CDP_ENABLED=false
-
-sleep 5
+start_server -e CA_CERT_CDP_ENABLED=false
 
 # Check certificate DOES NOT HAVE Certificate Revocation List Distribution Point
 echo "cdp1b"
@@ -210,19 +214,14 @@ docker run --rm --name test_cdp1b --net test_net -v "$PWD/acmeshdata:/acme.sh" -
      --accountemail cdp1b@example.org --server http://acme.example.org:8080/acme/directory
 ! openssl asn1parse -in "$PWD/acmeshdata/hostcdp1b.example.org_ecc/hostcdp1b.example.org.cer" | grep 'X509v3 CRL Distribution Points'
 
-echo "cert1a"
 
-docker kill test_server
-docker logs test_server
-docker rm test_server
+echo "cert expiry mails sent"
+
+stop_server
 
 docker exec test_db psql -U postgres -c "update certificates set not_valid_before=now() - interval '50 day', not_valid_after=now() - interval '10 days' where order_id = (select id from orders where status = 'valid' order by id asc limit 1);"
 docker exec test_db psql -U postgres -c "update certificates set not_valid_before=now() - interval '50 day', not_valid_after=now() + interval '10 days' where order_id = (select id from orders where status = 'valid' order by id desc limit 1);"
 
-run_server
+start_server
 
-sleep 5
-
-docker kill test_server
-
-docker logs test_server
+stop_server
