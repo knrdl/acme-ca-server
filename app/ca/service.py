@@ -67,11 +67,17 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
         public_key=csr.public_key(),
     ).add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
     if settings.ca.cert_cdp_enabled:
+        cdp_uri = str(settings.external_url).lower().removesuffix('/') + f'/ca/{ca_id}/crl'
+        if cdp_uri.startswith('https://'):
+            # CDP URI should always be HTTP, not HTTPS:
+            # https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.13
+            # https://datatracker.ietf.org/doc/html/rfc5280#section-8
+            cdp_uri = cdp_uri.replace('https://', 'http://', 1)
         cert_builder = cert_builder.add_extension(
             x509.CRLDistributionPoints(
                 distribution_points=[
                     x509.DistributionPoint(
-                        full_name=[x509.UniformResourceIdentifier(str(settings.external_url).removesuffix('/') + f'/ca/{ca_id}/crl')],
+                        full_name=[x509.UniformResourceIdentifier(cdp_uri)],
                         relative_name=None,
                         reasons=None,
                         crl_issuer=None,
