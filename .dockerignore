@@ -1,6 +1,7 @@
-__pycache__
+**/__pycache__
 .github
 .mypy_cache
 .pytest_cache
 .ruff_cache
 .vscode
+import
