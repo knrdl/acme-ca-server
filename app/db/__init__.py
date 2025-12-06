@@ -6,16 +6,16 @@ from config import settings
 from logger import logger
 from pydantic import BaseModel
 
-_pool: asyncpg.pool.Pool = None
+_POOL: asyncpg.pool.Pool = None
 
 
 async def connect():
-    global _pool  # pylint: disable=global-statement
-    _pool = await asyncpg.create_pool(min_size=0, max_size=20, dsn=str(settings.db_dsn), init=init_connection, server_settings={'application_name': settings.web.app_title})
+    global _POOL  # pylint: disable=global-statement
+    _POOL = await asyncpg.create_pool(min_size=0, max_size=20, dsn=str(settings.db_dsn), init=init_connection, server_settings={'application_name': settings.web.app_title})
 
 
 async def disconnect():
-    await _pool.close()
+    await _POOL.close()
 
 
 async def init_connection(conn: asyncpg.Connection):
@@ -38,7 +38,7 @@ class transaction:  # pylint: disable=invalid-name
         self.trans: asyncpg.connection.transaction = None
 
     async def __aenter__(self, *args, **kwargs):
-        self.conn = await _pool.acquire()
+        self.conn = await _POOL.acquire()
         self.trans = self.conn.transaction(readonly=self.readonly)
         await self.trans.start()
         return self
@@ -70,4 +70,4 @@ class transaction:  # pylint: disable=invalid-name
             await self.trans.rollback()
         else:
             await self.trans.commit()
-        await _pool.release(self.conn)
+        await _POOL.release(self.conn)
