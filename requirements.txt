@@ -1,5 +1,5 @@
 aiosmtplib==5.0.0
-asyncpg==0.30.0
+asyncpg==0.31.0
 cryptography==46.0.3
 fastapi==0.121.3
 httpx==0.28.1
