@@ -1,7 +1,9 @@
 FROM docker.io/python:3.14.2-alpine3.23
 
-RUN adduser --no-create-home --disabled-password appuser && \
-    apk update --no-cache
+RUN \
+  addgroup --gid 1000 appuser \
+  && adduser --no-create-home --disabled-password appuser --uid 1000 --ingroup appuser \
+  && apk update --no-cache
 
 WORKDIR /app
 EXPOSE 8080/tcp
