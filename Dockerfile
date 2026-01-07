@@ -23,6 +23,10 @@ ADD --chmod=0644 https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css /
 # precompile python files for faster startups
 RUN python3 -m compileall .
 
+# add entrypoint
+COPY --chmod=555 entrypoint.sh /entrypoint.sh
+ENTRYPOINT [ "/entrypoint.sh" ]
+
 USER appuser
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--no-server-header"]
 
