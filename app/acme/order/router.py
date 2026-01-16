@@ -18,7 +18,7 @@ from ..middleware import RequestData, SignedRequest
 
 class NewOrderDomain(BaseModel):
     type: Literal['dns']  # noqa: A003 (allow shadowing builtin "type")
-    value: constr(pattern=f'^{settings.acme.target_domain_regex.pattern}$')  # type: ignore[valid-type]
+    value: constr(pattern=f'^{settings.acme.target_domain_regex.pattern.strip().removeprefix("^").removesuffix("$")}$')  # type: ignore[valid-type]
 
 
 class NewOrderPayload(BaseModel):
