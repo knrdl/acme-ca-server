@@ -107,6 +107,7 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 |---------|---------|-------------|
 | EXTERNAL_URL        |         | The HTTPS address the server will be reachable from, e.g. https://acme.mydomain.org             |
 | DB_DSN        |         | Postgres connection string, e.g. `postgresql://username:password@host/dbname` (the database will be initialized on startup)            |
+| LOG_LEVEL | `info` | `debug`, `info`, `warning`, `error`  |
 | ACME_TERMS_OF_SERVICE_URL        | `None`        | Optional URL which the ACME client can show when the user has to accept the terms of service, e.g. https://acme.mydomain.org/terms             |
 | ACME_MAIL_REQUIRED        | `True`       | whether the user has to provide a mail address to obtain certificates via the ACME client (recommended)        |
 | ACME_MAIL_TARGET_REGEX        | any mail address       | restrict the format of user-provided mail addresses. E.g. `[^@]+@mydomain\.org` only allows mail addresses from mydomain.org             |

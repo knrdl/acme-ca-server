@@ -86,6 +86,7 @@ class AcmeSettings(BaseSettings):
 class Settings(BaseSettings):
     external_url: AnyHttpUrl
     db_dsn: PostgresDsn
+    log_level: Literal['debug', 'info', 'warning', 'error'] = 'info'
     acme: AcmeSettings = AcmeSettings()
     ca: CaSettings = CaSettings()
     mail: MailSettings = MailSettings()
@@ -112,5 +113,6 @@ class Settings(BaseSettings):
 
 settings = Settings()  # type: ignore[call-arg]
 
+logger.setLevel(settings.log_level.upper())
 
-logger.info('Settings: %s', settings.model_dump())
+logger.debug('Settings: %s', settings.model_dump()) 
