@@ -103,6 +103,9 @@ docker run -it --rm certbot/certbot certonly --server https://acme.mydomain.org/
 
 ### Environment Variables
 
+> [Docker Secrets](https://docs.docker.com/reference/cli/docker/secret/) can also be used, ideal for sensitive values like `CA_ENCRYPTION_KEY` and `DB_DSN`.
+For instance, `DB_DSN` can be provided either as an env var or as a file at `/run/secrets/DB_DSN` or `/run/secrets/db_dsn`.
+
 | Env Var | Default | Description |
 |---------|---------|-------------|
 | EXTERNAL_URL        |         | The HTTPS address the server will be reachable from, e.g. https://acme.mydomain.org             |

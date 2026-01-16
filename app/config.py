@@ -13,7 +13,7 @@ class WebSettings(BaseSettings):
     enable_public_log: bool = False
     app_title: str = 'ACME CA Server'
     app_description: str = 'Self-hosted ACME CA Server'
-    model_config = SettingsConfigDict(env_prefix='web_')
+    model_config = SettingsConfigDict(env_prefix='web_', secrets_dir='/run/secrets')
 
 
 class CaSettings(BaseSettings):
@@ -24,7 +24,7 @@ class CaSettings(BaseSettings):
     encryption_key: Optional[SecretStr] = None  # encryption of private keys in database
     import_dir: Path = '/import'  # type: ignore[assignment]
 
-    model_config = SettingsConfigDict(env_prefix='ca_')
+    model_config = SettingsConfigDict(env_prefix='ca_', secrets_dir='/run/secrets')
 
     @model_validator(mode='after')
     def valid_check(self) -> 'CaSettings':
@@ -53,7 +53,7 @@ class MailSettings(BaseSettings):
     warn_before_cert_expires: timedelta | Literal[False] = timedelta(days=20)
     notify_when_cert_expired: bool = True
 
-    model_config = SettingsConfigDict(env_prefix='mail_')
+    model_config = SettingsConfigDict(env_prefix='mail_', secrets_dir='/run/secrets')
 
     @model_validator(mode='before')
     @classmethod
@@ -80,7 +80,7 @@ class AcmeSettings(BaseSettings):
     mail_required: bool = True
     target_domain_regex: Pattern = r'[^\*]+\.[^\.]+'  # type: ignore[assignment]  # disallow wildcard
 
-    model_config = SettingsConfigDict(env_prefix='acme_')
+    model_config = SettingsConfigDict(env_prefix='acme_', secrets_dir='/run/secrets')
 
 
 class Settings(BaseSettings):
@@ -91,6 +91,8 @@ class Settings(BaseSettings):
     ca: CaSettings = CaSettings()
     mail: MailSettings = MailSettings()
     web: WebSettings = WebSettings()
+
+    model_config = SettingsConfigDict(secrets_dir='/run/secrets')
 
     @model_validator(mode='before')
     @classmethod
@@ -115,4 +117,4 @@ settings = Settings()  # type: ignore[call-arg]
 
 logger.setLevel(settings.log_level.upper())
 
-logger.debug('Settings: %s', settings.model_dump()) 
+logger.debug('Settings: %s', settings.model_dump())
