@@ -1,7 +1,9 @@
 FROM docker.io/python:3.14.3-alpine3.23
 
-RUN adduser --no-create-home --disabled-password appuser && \
-    apk update --no-cache
+RUN \
+  addgroup --gid 1000 appuser \
+  && adduser --no-create-home --disabled-password appuser --uid 1000 --ingroup appuser \
+  && apk update --no-cache
 
 WORKDIR /app
 EXPOSE 8080/tcp
@@ -20,6 +22,10 @@ ADD --chmod=0644 https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css /
 
 # precompile python files for faster startups
 RUN python3 -m compileall .
+
+# add entrypoint
+COPY --chmod=555 entrypoint.sh /entrypoint.sh
+ENTRYPOINT [ "/entrypoint.sh" ]
 
 USER appuser
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--no-server-header"]
