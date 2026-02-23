@@ -1,7 +1,7 @@
 aiosmtplib==5.1.0
 asyncpg==0.31.0
 cryptography==46.0.5
-fastapi==0.129.0
+fastapi==0.131.0
 httpx==0.28.1
 jinja2==3.1.6
 jwcrypto==1.5.6
