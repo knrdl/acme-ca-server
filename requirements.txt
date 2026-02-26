@@ -6,5 +6,5 @@ httpx==0.28.1
 jinja2==3.1.6
 jwcrypto==1.5.6
 pydantic[email]==2.12.5
-pydantic-settings==2.13.0
+pydantic-settings==2.13.1
 uvicorn[standard]==0.41.0
