@@ -174,7 +174,11 @@ Template parameters:
 
 ### Provide a custom CA implementation
 
-First set env var `CA_ENABLED=False`. Then overwrite the file `/app/ca/service.py` (see [here](./app/ca/service.py)) in the docker image. It must provide two functions:
+If you want to integrate your own CA logic, you can replace the default implementation used by the application.
+
+> 💡 A complete example that retrieves certificates from an HTTP endpoint is available [here](https://github.com/knrdl/acme-ca-server/issues/247#issuecomment-3783583560)
+
+First set env var `CA_ENABLED=False` to disable the built-in CA. Then overwrite the file `/app/ca/service.py` in the docker image. You can use the [existing file](./app/ca/service.py) as a reference. Your implementation must provide two functions:
 
 #### 1. `sign_csr()`
 
