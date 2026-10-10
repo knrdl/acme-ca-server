@@ -46,8 +46,8 @@ async def send_mail(receiver: str, template: Templates, subject_vars: dict | Non
             hostname=settings.mail.host,
             port=settings.mail.port,
             **auth,  # type: ignore[arg-type]
-            use_tls=settings.mail.encryption == 'tls',
-            start_tls=settings.mail.encryption == 'starttls',
+            use_tls=settings.mail.encryption.startswith('tls'),
+            start_tls=settings.mail.encryption.startswith('starttls'),
             tls_context=ctx,
         ) as client:
             await client.send_message(message)
