@@ -126,7 +126,7 @@ For instance, `DB_DSN` can be provided either as an env var or as a file at `/ru
 | MAIL_PORT        | `None`       | SMTP port (default depends on encryption method)  |
 | MAIL_USERNAME        | `None`       | SMTP auth username  |
 | MAIL_PASSWORD        | `None`       | SMTP auth password  |
-| MAIL_ENCRYPTION        | `tls`       | transport encryption method: `tls` (recommended), `starttls` or `plain` (unencrypted)  |
+| MAIL_ENCRYPTION        | `tls`       | transport encryption method: <br>`tls` (recommended) <br> `starttls` <br> `plain` (unencrypted) <hr> `tls-nonstrict` `starttls-nonstrict` (on error: *Missing Authority Key Identifier*) |
 | MAIL_SENDER        | `None`       | the mail address shown when sending mails, e.g. `acme@mydomain.org`  |
 | MAIL_NOTIFY_ON_ACCOUNT_CREATION        | `True`       | whether to send a mail when the user runs ACME for the first time  |
 | MAIL_WARN_BEFORE_CERT_EXPIRES        | 20 days (`20d`)     | when to warn the user via mail that a certificate has not been renewed in time (can be disabled by providing `false` as value)  |

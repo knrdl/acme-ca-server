@@ -48,7 +48,7 @@ class MailSettings(BaseSettings):
     port: int | None = None
     username: str | None = None
     password: SecretStr | None = None
-    encryption: Literal['tls', 'starttls', 'plain'] = 'tls'
+    encryption: Literal['tls', 'starttls', 'plain', 'tls-nonstrict', 'starttls-nonstrict'] = 'tls'
     sender: EmailStr | None = None
     notify_on_account_creation: bool = True
     warn_before_cert_expires: timedelta | Literal[False] = timedelta(days=20)
@@ -70,8 +70,12 @@ class MailSettings(BaseSettings):
         if (self.username and not self.password) or (not self.username and self.password):
             raise ValueError('Either no mail auth must be specified or username and password must be provided')
         if self.enabled and not self.port:
-            self.port = {'tls': 465, 'starttls': 587, 'plain': 25}[self.encryption]
+            self.port = {'tls': 465, 'starttls': 587, 'plain': 25, 'tls-nonstrict': 465, 'starttls-nonstrict': 587}[self.encryption]
         return self
+
+    @property
+    def tls_non_strict(self) -> bool:
+        return self.encryption.endswith('-nonstrict')
 
 
 class AcmeSettings(BaseSettings):

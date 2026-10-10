@@ -34,12 +34,21 @@ async def send_mail(receiver: str, template: Templates, subject_vars: dict | Non
         auth = {}
         if settings.mail.username and settings.mail.password:
             auth = {'username': settings.mail.username, 'password': settings.mail.password.get_secret_value()}
+
+        ctx = None
+        if settings.mail.encryption != 'plain' and settings.mail.tls_non_strict:
+            import ssl  # pylint: disable=import-outside-toplevel
+
+            ctx = ssl.create_default_context()
+            ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT
+
         async with SMTP(
             hostname=settings.mail.host,
             port=settings.mail.port,
             **auth,  # type: ignore[arg-type]
             use_tls=settings.mail.encryption == 'tls',
             start_tls=settings.mail.encryption == 'starttls',
+            tls_context=ctx,
         ) as client:
             await client.send_message(message)
     else:
