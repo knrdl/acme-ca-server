@@ -1,7 +1,7 @@
 import asyncio
 import secrets
 from datetime import datetime
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 import db
 from ca import service as ca_service
@@ -23,8 +23,8 @@ class NewOrderDomain(BaseModel):
 
 class NewOrderPayload(BaseModel):
     identifiers: conlist(NewOrderDomain, min_length=1)  # type: ignore[valid-type]
-    notBefore: Optional[datetime] = None
-    notAfter: Optional[datetime] = None
+    notBefore: datetime | None = None
+    notAfter: datetime | None = None
 
 
 class FinalizeOrderPayload(BaseModel):
@@ -38,10 +38,10 @@ def order_response(
     domains: list[str],
     authz_ids: list[str],
     order_id: str,
-    error: Optional[ACMEException] = None,
-    not_valid_before: Optional[datetime] = None,
-    not_valid_after: Optional[datetime] = None,
-    cert_serial_number: Optional[str] = None,
+    error: ACMEException | None = None,
+    not_valid_before: datetime | None = None,
+    not_valid_after: datetime | None = None,
+    cert_serial_number: str | None = None,
 ):
     return {
         'status': status,
@@ -185,7 +185,7 @@ async def finalize_order(response: Response, order_id: str, data: Annotated[Requ
         err = None
     except ACMEException as e:
         err = e
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         err = ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, exctype='serverInternal', detail=str(e), new_nonce=data.new_nonce)
         logger.warning('sign csr failed (account: %s)', data.account_id, exc_info=True)
 

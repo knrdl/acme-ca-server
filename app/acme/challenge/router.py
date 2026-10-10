@@ -72,7 +72,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
             err = False
         except ACMEException as e:
             err = e
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             err = ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, exctype='serverInternal', detail=str(e), new_nonce=data.new_nonce)
             logger.warning('challenge failed for %s (account: %s)', domain, data.account_id, exc_info=True)
         if err is False:

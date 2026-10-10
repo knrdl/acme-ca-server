@@ -3,8 +3,8 @@ import json
 import os
 import shutil
 import subprocess
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import jwcrypto.jwk
 import pytest

@@ -10,7 +10,7 @@ async def start():
             try:
                 async with db.transaction() as sql:
                     await sql.exec("""delete from nonces where expires_at < now()""")
-            except Exception:
+            except Exception:  # noqa: BLE001
                 logger.error('could not purge old nonces', exc_info=True)
             finally:
                 await asyncio.sleep(1 * 60 * 60)

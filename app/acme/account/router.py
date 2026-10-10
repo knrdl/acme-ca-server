@@ -83,7 +83,7 @@ async def create_or_view_account(
             if mail_addr:
                 try:
                     await mail.send_new_account_info_mail(mail_addr)
-                except Exception:
+                except Exception:  # noqa: BLE001
                     logger.error('could not send new account mail to "%s"', mail_addr, exc_info=True)
 
     response.status_code = 200 if account_exists else 201
@@ -116,7 +116,7 @@ async def view_or_update_account(
         if data.payload.mail_addr and account_is_valid:
             try:
                 await mail.send_new_account_info_mail(data.payload.mail_addr)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 logger.error('could not send new account mail to "%s"', data.payload.mail_addr, exc_info=True)
 
     if data.payload.status == 'deactivated':  # https://www.rfc-editor.org/rfc/rfc8555#section-7.3.6

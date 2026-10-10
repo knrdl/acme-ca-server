@@ -20,7 +20,7 @@ async def start():
                     _, crl_pem = await asyncio.to_thread(build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations)
                     async with db.transaction() as sql:
                         await sql.exec("""update cas set crl_pem = $1 where serial_number = $2""", crl_pem, sn)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 logger.error('could not rebuild crl', exc_info=True)
             finally:
                 await asyncio.sleep(12 * 60 * 60)  # rebuild crl every 12h

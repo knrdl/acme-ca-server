@@ -49,7 +49,7 @@ async def start():
                         try:
                             await mail.send_certs_will_expire_warn_mail(receiver=mail_addr, domains=domains, expires_at=expires_at, serial_number=serial_number)
                             ok = True
-                        except Exception:
+                        except Exception:  # noqa: BLE001
                             logger.error('could not send_certs_will_expire_warn_mail for "%s"', mail_addr, exc_info=True)
                             ok = False
                         if ok:
@@ -59,13 +59,13 @@ async def start():
                         try:
                             await mail.send_certs_expired_info_mail(receiver=mail_addr, domains=domains, expires_at=expires_at, serial_number=serial_number)
                             ok = True
-                        except Exception:
+                        except Exception:  # noqa: BLE001
                             logger.error('could not send_certs_expired_info_mail for "%s"', mail_addr, exc_info=True)
                             ok = False
                         if ok:
                             async with db.transaction() as sql:
                                 await sql.exec("""update certificates set user_informed_cert_has_expired=true where serial_number=$1""", serial_number)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 logger.error('could not inform about expiring certificates', exc_info=True)
             finally:
                 await asyncio.sleep(1 * 60 * 60)

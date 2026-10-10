@@ -1,7 +1,8 @@
 import sys
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Literal, Optional, Pattern
+from re import Pattern
+from typing import Any, Literal
 
 from logger import logger
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, model_validator
@@ -21,7 +22,7 @@ class CaSettings(BaseSettings):
     cert_lifetime: timedelta = timedelta(days=60)
     crl_lifetime: timedelta = timedelta(days=7)
     cert_cdp_enabled: bool = True
-    encryption_key: Optional[SecretStr] = None  # encryption of private keys in database
+    encryption_key: SecretStr | None = None  # encryption of private keys in database
     import_dir: Path = '/import'  # type: ignore[assignment]
 
     model_config = SettingsConfigDict(env_prefix='ca_', secrets_dir='/run/secrets')
@@ -43,12 +44,12 @@ class CaSettings(BaseSettings):
 
 class MailSettings(BaseSettings):
     enabled: bool = False
-    host: Optional[str] = None
-    port: Optional[int] = None
-    username: Optional[str] = None
-    password: Optional[SecretStr] = None
+    host: str | None = None
+    port: int | None = None
+    username: str | None = None
+    password: SecretStr | None = None
     encryption: Literal['tls', 'starttls', 'plain'] = 'tls'
-    sender: Optional[EmailStr] = None
+    sender: EmailStr | None = None
     notify_on_account_creation: bool = True
     warn_before_cert_expires: timedelta | Literal[False] = timedelta(days=20)
     notify_when_cert_expired: bool = True
@@ -58,9 +59,8 @@ class MailSettings(BaseSettings):
     @model_validator(mode='before')
     @classmethod
     def sanitize_values(cls, values: Any) -> Any:
-        if 'warn_before_cert_expires' in values:  # not in values if default value
-            if (values['warn_before_cert_expires'] or '').lower().strip() in ('', 'false', '0', '-1'):
-                values['warn_before_cert_expires'] = False
+        if 'warn_before_cert_expires' in values and (values['warn_before_cert_expires'] or '').lower().strip() in ('', 'false', '0', '-1'):
+            values['warn_before_cert_expires'] = False
         return values
 
     @model_validator(mode='after')

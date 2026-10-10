@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 import db
 from config import settings
@@ -19,7 +19,7 @@ api = APIRouter(tags=['acme:authorization'])
 @api.post('/authorizations/{authz_id}')
 async def view_or_update_authorization(
     authz_id: str,
-    data: Annotated[RequestData[Optional[UpdateAuthzPayload]], Depends(SignedRequest(Optional[UpdateAuthzPayload]))],
+    data: Annotated[RequestData[UpdateAuthzPayload | None], Depends(SignedRequest(UpdateAuthzPayload | None))],
 ):
     async with db.transaction(readonly=True) as sql:
         record = await sql.record(
@@ -35,17 +35,16 @@ async def view_or_update_authorization(
         )
     if record:
         authz_status, order_status, expires_at, domain, chal_id, chal_token, chal_status, chal_validated_at = record
-        if data.payload and data.payload.status == 'deactivated':  # deactivate authz
-            if authz_status in ['pending', 'valid'] and order_status in ['pending', 'ready']:
-                async with db.transaction() as sql:
-                    await sql.exec(
-                        """
-                        update orders set status='invalid', error=row('unauthorized','authorization deactivated')
-                        where id = (select order_id from authorizations where id = $1)
-                        """,
-                        authz_id,
-                    )
-                    authz_status = await sql.value("""update authorizations set status = 'deactivated' where id = $1 returning status""", authz_id)
+        if data.payload and data.payload.status == 'deactivated' and authz_status in ['pending', 'valid'] and order_status in ['pending', 'ready']:
+            async with db.transaction() as sql:
+                await sql.exec(
+                    """
+                    update orders set status='invalid', error=row('unauthorized','authorization deactivated')
+                    where id = (select order_id from authorizations where id = $1)
+                    """,
+                    authz_id,
+                )
+                authz_status = await sql.value("""update authorizations set status = 'deactivated' where id = $1 returning status""", authz_id)
         chal = {
             'type': 'http-01',
             'url': f'{settings.external_url}acme/challenges/{chal_id}',

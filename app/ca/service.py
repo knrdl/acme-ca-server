@@ -23,7 +23,7 @@ async def sign_csr(csr: x509.CertificateSigningRequest, subject_domain: str, san
     san_domains: the alternative (additional) requested domain names
     """
     if not settings.ca.enabled:
-        raise Exception('internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation')  # pylint: disable=broad-exception-raised
+        raise RuntimeError('internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation')
 
     ca_cert, ca_key = await load_active_ca()
 
@@ -34,7 +34,7 @@ async def sign_csr(csr: x509.CertificateSigningRequest, subject_domain: str, san
 
 async def revoke_cert(serial_number: str, revocations: set[tuple[str, datetime]]) -> None:  # pylint: disable=unused-argument
     if not settings.ca.enabled:
-        raise Exception('internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation')  # pylint: disable=broad-exception-raised
+        raise RuntimeError('internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation')
     ca_cert, ca_key = await load_active_ca()
     _, crl_pem = await asyncio.to_thread(build_crl_sync, ca_key=ca_key, ca_cert=ca_cert, revocations=revocations)
     async with db.transaction() as sql:
