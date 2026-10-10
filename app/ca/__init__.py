@@ -28,13 +28,13 @@ if settings.ca.enabled:
 
     async def init():
         if (settings.ca.import_dir / 'ca.pem').is_file() and (settings.ca.import_dir / 'ca.key').is_file():
-            with open(settings.ca.import_dir / 'ca.key', 'rb') as f:
+            with open(settings.ca.import_dir / 'ca.key', 'rb') as f:  # noqa: ASYNC230
                 ca_key_bytes = f.read()
             ca_key = serialization.load_pem_private_key(ca_key_bytes, None)
             f = Fernet(settings.ca.encryption_key.get_secret_value())
             ca_key_enc = f.encrypt(ca_key_bytes)
 
-            with open(settings.ca.import_dir / 'ca.pem', 'rb') as f:
+            with open(settings.ca.import_dir / 'ca.pem', 'rb') as f:  # noqa: ASYNC230
                 ca_cert_bytes = f.read()
             ca_cert = x509.load_pem_x509_certificate(ca_cert_bytes, None)
             serial_number = SerialNumberConverter.int2hex(ca_cert.serial_number)

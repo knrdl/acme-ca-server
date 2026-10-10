@@ -42,6 +42,10 @@ line-length = 179
 
 [tool.ruff.lint]
 extend-select = ["I"]
+ignore = ["RUF100"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Body"]
 
 [tool.ruff.format]
 quote-style = "single"

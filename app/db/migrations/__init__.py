@@ -27,7 +27,7 @@ async def run():
             if not next_file.is_file():
                 break
             logger.info('Running migration: %s', next_file.name)
-            with open(next_file, encoding='utf-8') as f:
+            with open(next_file, encoding='utf-8') as f:  # noqa: ASYNC230
                 await sql.exec(f.read())
             await sql.exec("""update migrations set migration=$1""", next_level)
             dirty = True
