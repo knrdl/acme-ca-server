@@ -73,3 +73,35 @@ def test_should_handle_unknown_orders(signed_request, directory):
     response = signed_request(order_url + '123/finalize', response.headers['Replay-Nonce'], {'csr': 'DEADBEEF'}, account_id)
     assert response.status_code == 404
     assert response.json() == view_order_err
+
+
+def test_should_prevalidate_whitelisted_domains(signed_request, directory):
+    from config import settings
+
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+    thumbprint = signed_request.account_jwk.thumbprint()
+    settings.acme.prevalidated_domains = {thumbprint: frozenset({'host1.example.org'})}
+    try:
+        response = signed_request(
+            directory['newOrder'],
+            response.headers['Replay-Nonce'],
+            {'identifiers': [{'type': 'dns', 'value': 'Host1.example.org'}]},
+            account_id,
+        )
+        assert response.json()['status'] == 'ready', response.json()
+
+        response = signed_request(
+            directory['newOrder'],
+            response.headers['Replay-Nonce'],
+            {'identifiers': [{'type': 'dns', 'value': 'host1.example.org'}, {'type': 'dns', 'value': 'host2.example.org'}]},
+            account_id,
+        )
+        assert response.json()['status'] == 'pending', response.json()
+        statuses = []
+        for authz_url in response.json()['authorizations']:
+            response = signed_request(authz_url, response.headers['Replay-Nonce'], '', account_id)
+            statuses.append((response.json()['identifier']['value'], response.json()['status']))
+        assert sorted(statuses) == [('host1.example.org', 'valid'), ('host2.example.org', 'pending')], statuses
+    finally:
+        settings.acme.prevalidated_domains = {}

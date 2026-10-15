@@ -2,11 +2,11 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 from re import Pattern
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from logger import logger
-from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class WebSettings(BaseSettings):
@@ -84,7 +84,27 @@ class AcmeSettings(BaseSettings):
     mail_required: bool = True
     target_domain_regex: Pattern = r'[^\*]+\.[^\.]+'  # type: ignore[assignment]  # disallow wildcard
 
+    # <account jwk thumbprint>:<domain a>,<domain b>;<account jwk thumbprint>:<domain c>
+    prevalidated_domains: Annotated[dict[str, frozenset[str]], NoDecode] = {}
+
     model_config = SettingsConfigDict(env_prefix='acme_', secrets_dir='/run/secrets')
+
+    @field_validator('prevalidated_domains', mode='before')
+    @classmethod
+    def parse_prevalidated_domains(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        result: dict[str, set[str]] = {}
+        for entry in value.split(';'):
+            if not entry.strip():
+                continue
+            account, sep, domains = entry.partition(':')
+            account = account.strip()
+            domain_set = {domain.strip().lower() for domain in domains.split(',') if domain.strip()}
+            if not sep or not account or not domain_set:
+                raise ValueError(f'Invalid entry "{entry.strip()}" in acme_prevalidated_domains, expected format: <account>:<domain a>,<domain b>;<account>:<domain c>')
+            result.setdefault(account, set()).update(domain_set)
+        return result
 
 
 class Settings(BaseSettings):
