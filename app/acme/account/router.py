@@ -13,7 +13,7 @@ from ..middleware import RequestData, SignedRequest
 
 tosAgreedType = Literal[True] if settings.acme.terms_of_service_url else (bool | None)
 contactType = conlist(
-    constr(strip_whitespace=True, to_lower=True, pattern=f'^mailto:{settings.acme.mail_target_regex.pattern.strip().removeprefix("^").removesuffix("$")}$'),
+    constr(strip_whitespace=True, to_lower=True, pattern=settings.acme.mailto_target_regex_pattern),
     min_length=1,
     max_length=1,
 )
