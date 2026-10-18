@@ -27,7 +27,8 @@ async def check_csr(csr_der: bytes, ordered_domains: list[str], new_nonce: str |
     if not csr.is_signature_valid:
         raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='badCSR', detail='invalid signature', new_nonce=new_nonce)
 
-    sans = [san.lower() for san in csr.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value.get_values_for_type(x509.DNSName)]  # type: ignore[attr-defined]
+    san_extension = csr.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value
+    sans = [san.lower() for san in san_extension.get_values_for_type(x509.DNSName)]  # type: ignore[attr-defined]
     csr_domains = set(sans)
     subject_candidates = csr.subject.get_attributes_for_oid(x509.oid.NameOID.COMMON_NAME)
     if subject_candidates:
