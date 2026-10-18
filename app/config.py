@@ -84,7 +84,7 @@ class AcmeSettings(BaseSettings):
     mail_required: bool = True
     target_domain_regex: Pattern = r'[^\*]+\.[^\.]+'  # type: ignore[assignment]  # disallow wildcard
 
-    # <account jwk thumbprint>:<domain a>,<domain b>;<account jwk thumbprint>:<domain c>
+    # one line per account: <account jwk thumbprint>:<domain a>,<domain b>
     prevalidated_domains: Annotated[dict[str, frozenset[str]], NoDecode] = {}
 
     model_config = SettingsConfigDict(env_prefix='acme_', secrets_dir='/run/secrets')
@@ -95,14 +95,14 @@ class AcmeSettings(BaseSettings):
         if not isinstance(value, str):
             return value
         result: dict[str, set[str]] = {}
-        for entry in value.split(';'):
+        for entry in value.splitlines():
             if not entry.strip():
                 continue
             account, sep, domains = entry.partition(':')
             account = account.strip()
             domain_set = {domain.strip().lower() for domain in domains.split(',') if domain.strip()}
             if not sep or not account or not domain_set:
-                raise ValueError(f'Invalid entry "{entry.strip()}" in acme_prevalidated_domains, expected format: <account>:<domain a>,<domain b>;<account>:<domain c>')
+                raise ValueError(f'Invalid entry "{entry.strip()}" in acme_prevalidated_domains, expected format: one line per account, <account>:<domain a>,<domain b>')
             result.setdefault(account, set()).update(domain_set)
         return result
 
