@@ -85,7 +85,11 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
     prevalidated_domains = frozenset(domain for domain in domains if domain.lower() in allowed_prevalid_domains)
     initial_order_status = 'pending' if any(domain not in prevalidated_domains for domain in domains) else 'ready'
     logger.debug(
-        'new order (account: %s, jwk thumbprint: %s, prevalidated domains: %s, initial order status: %s)', data.account_id, account_thumbprint, sorted(prevalidated_domains), initial_order_status
+        'new order (account: %s, jwk thumbprint: %s, prevalidated domains: %s, initial order status: %s)',
+        data.account_id,
+        account_thumbprint,
+        sorted(prevalidated_domains),
+        initial_order_status,
     )
 
     async with db.transaction() as sql:
@@ -103,7 +107,10 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
             """
             insert into challenges (id, authz_id, token, status, validated_at) values ($1, $2, $3, $4, case when $5 then now() end)
             """,
-            *[(chal_ids[domain], authz_ids[domain], chal_tkns[domain], 'valid' if domain in prevalidated_domains else 'pending', domain in prevalidated_domains) for domain in domains],
+            *[
+                (chal_ids[domain], authz_ids[domain], chal_tkns[domain], 'valid' if domain in prevalidated_domains else 'pending', domain in prevalidated_domains)
+                for domain in domains
+            ],
         )
 
     if prevalidated_domains:
