@@ -1,7 +1,7 @@
 import asyncio
 from typing import Literal
 
-import httpx
+import httpx2
 import jwcrypto.jwk
 from fastapi import status
 
@@ -12,7 +12,7 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
     for _ in range(3):  # 3x retry
         err: Literal[False] | ACMEException
         try:
-            async with httpx.AsyncClient(
+            async with httpx2.AsyncClient(
                 timeout=10,
                 # only http 1.0/1.1 is required, not https
                 verify=False,  # noqa: S501 (https is intentionally disabled)
@@ -32,9 +32,9 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
                         detail='presented token does not match challenge',
                         new_nonce=new_nonce,
                     )
-        except httpx.ConnectTimeout:
+        except httpx2.ConnectTimeout:
             err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='connection', detail='timeout', new_nonce=new_nonce)
-        except httpx.ConnectError:
+        except httpx2.ConnectError:
             err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='dns', detail='could not resolve address', new_nonce=new_nonce)
         except Exception:  # noqa: BLE001
             err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='serverInternal', detail='could not validate challenge', new_nonce=new_nonce)
