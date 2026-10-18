@@ -2,6 +2,7 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 from re import Pattern
+import re
 from typing import Annotated, Any, Literal
 
 from logger import logger
@@ -80,9 +81,9 @@ class MailSettings(BaseSettings):
 
 class AcmeSettings(BaseSettings):
     terms_of_service_url: AnyHttpUrl | None = None
-    mail_target_regex: Pattern = r'[^@]+@[^@]+\.[^@]+'  # type: ignore[assignment]
+    mail_target_regex: Pattern = re.compile(r'[^@]+@[^@]+\.[^@]+')
     mail_required: bool = True
-    target_domain_regex: Pattern = r'[^\*]+\.[^\.]+'  # type: ignore[assignment]  # disallow wildcard
+    target_domain_regex: Pattern = re.compile(r'[^\*]+\.[^\.]+')  # disallow wildcard
 
     # one line per account: <account jwk thumbprint>:<domain a>,<domain b>
     prevalidated_domains: Annotated[dict[str, frozenset[str]], NoDecode] = {}
