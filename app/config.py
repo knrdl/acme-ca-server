@@ -1,8 +1,8 @@
+import re
 import sys
 from datetime import timedelta
 from pathlib import Path
 from re import Pattern
-import re
 from typing import Annotated, Any, Literal
 
 from logger import logger
@@ -24,7 +24,7 @@ class CaSettings(BaseSettings):
     crl_lifetime: timedelta = timedelta(days=7)
     cert_cdp_enabled: bool = True
     encryption_key: SecretStr | None = None  # encryption of private keys in database
-    import_dir: Path = '/import'  # type: ignore[assignment]
+    import_dir: Path = Path('/import')
 
     model_config = SettingsConfigDict(env_prefix='ca_', secrets_dir='/run/secrets')
 
