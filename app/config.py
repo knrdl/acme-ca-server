@@ -1,7 +1,7 @@
 import sys
 from datetime import timedelta
 from pathlib import Path
-from re import Pattern
+from re import IGNORECASE, Pattern, fullmatch
 from typing import Annotated, Any, Literal
 
 from logger import logger
@@ -110,7 +110,7 @@ class AcmeSettings(BaseSettings):
     def check_prevalidated_domains(self) -> 'AcmeSettings':
         for account, domains in self.prevalidated_domains.items():
             for domain in domains:
-                if not self.target_domain_regex.fullmatch(domain):
+                if not fullmatch(self.target_domain_regex.pattern, domain, flags=IGNORECASE):
                     raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains does not match acme_target_domain_regex')
         return self
 
