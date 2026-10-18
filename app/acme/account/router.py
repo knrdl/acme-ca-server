@@ -80,7 +80,7 @@ async def create_or_view_account(
                     mail_addr,
                     jwk_json,
                 )
-            logger.info('new account created (id: %s, jwk thumbprint: %s)', account_id, data.key.thumbprint())
+            logger.info('new account created (id: %s, mail address: %s, jwk thumbprint: %s)', account_id, mail_addr, data.key.thumbprint())
             if mail_addr:
                 try:
                     await mail.send_new_account_info_mail(mail_addr)
