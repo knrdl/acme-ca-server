@@ -85,6 +85,7 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
     prevalidated = {domain for domain in domains if domain.lower() in allowed_domains}
     unvalidated = [domain for domain in domains if domain not in prevalidated]
     initial_order_status = 'pending' if unvalidated else 'ready'
+    logger.debug('new order (account: %s, jwk thumbprint: %s, prevalidated domains: %s, initial order status: %s)', data.account_id, thumbprint, sorted(prevalidated), initial_order_status)
 
     async with db.transaction() as sql:
         order_status, expires_at = await sql.record(
