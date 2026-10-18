@@ -1,5 +1,5 @@
 import json
-from typing import Generic, Literal, TypeVar
+from typing import Annotated, Generic, Literal, TypeVar
 
 import db
 import jwcrypto.jwk
@@ -7,22 +7,22 @@ import jwcrypto.jws
 from config import settings
 from fastapi import Body, Header, Request, Response, status
 from jwcrypto.common import base64url_decode
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, constr, model_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, StringConstraints, model_validator
 
 from .exceptions import ACMEException
 from .nonce import service as nonce_service
 
 
 class RsaJwk(BaseModel):
-    n: constr(min_length=1)  # type: ignore[valid-type]
-    e: constr(min_length=1)  # type: ignore[valid-type]
+    n: Annotated[str, StringConstraints(min_length=1)]
+    e: Annotated[str, StringConstraints(min_length=1)]
     kty: Literal['RSA']
 
 
 class EcJwk(BaseModel):
     crv: Literal['P-256']
-    x: constr(min_length=1)  # type: ignore[valid-type]
-    y: constr(min_length=1)  # type: ignore[valid-type]
+    x: Annotated[str, StringConstraints(min_length=1)]
+    y: Annotated[str, StringConstraints(min_length=1)]
     kty: Literal['EC']
 
 
@@ -43,7 +43,7 @@ class Protected(BaseModel):
     alg: Literal['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512']
     jwk: RsaJwk | EcJwk | None = None  # new user
     kid: str | None = None  # existing user
-    nonce: constr(min_length=1)  # type: ignore[valid-type]
+    nonce: Annotated[str, StringConstraints(min_length=1)]
     url: AnyHttpUrl
 
     @model_validator(mode='after')
@@ -80,9 +80,9 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         request: Request,
         response: Response,
         content_type: str = Header(..., pattern=r'^application/jose\+json$', description='Content Type must be "application/jose+json"'),
-        protected: constr(min_length=1) = Body(...),  # type: ignore[valid-type]
-        signature: constr(min_length=1) = Body(...),  # type: ignore[valid-type]
-        payload: constr(min_length=0) = Body(...),  # type: ignore[valid-type]
+        protected: Annotated[str, StringConstraints(min_length=1)] = Body(...),
+        signature: Annotated[str, StringConstraints(min_length=1)] = Body(...),
+        payload: Annotated[str, StringConstraints(min_length=0)] = Body(...),
     ):
         protected_data = Protected(**json.loads(base64url_decode(protected)))
 

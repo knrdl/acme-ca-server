@@ -31,9 +31,11 @@ async def send_mail(receiver: str, template: Templates, subject_vars: dict | Non
     message['To'] = receiver
     message['Subject'] = await subject_job
     if settings.mail.enabled:
-        auth = {}
+        username = None
+        password = None
         if settings.mail.username and settings.mail.password:
-            auth = {'username': settings.mail.username, 'password': settings.mail.password.get_secret_value()}
+            username = settings.mail.username
+            password = settings.mail.password.get_secret_value()
 
         ctx = None
         if settings.mail.encryption != 'plain' and settings.mail.tls_non_strict:
@@ -45,7 +47,8 @@ async def send_mail(receiver: str, template: Templates, subject_vars: dict | Non
         async with SMTP(
             hostname=settings.mail.host,
             port=settings.mail.port,
-            **auth,  # type: ignore[arg-type]
+            username=username,
+            password=password,
             use_tls=settings.mail.encryption.startswith('tls'),
             start_tls=settings.mail.encryption.startswith('starttls'),
             tls_context=ctx,

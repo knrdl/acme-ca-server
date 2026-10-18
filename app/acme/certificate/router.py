@@ -4,7 +4,7 @@ import db
 from ca import service as ca_service
 from fastapi import APIRouter, Depends, Header, Response, status
 from jwcrypto.common import base64url_decode
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, StringConstraints
 
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest
@@ -12,7 +12,7 @@ from .service import SerialNumberConverter, parse_cert
 
 
 class RevokeCertPayload(BaseModel):
-    certificate: constr(min_length=1, max_length=1 * 1024**2)  # type: ignore[valid-type]
+    certificate: Annotated[str, StringConstraints(min_length=1, max_length=1 * 1024**2)]
     reason: int | None = None  # not evaluated
 
 
@@ -22,7 +22,7 @@ api = APIRouter(tags=['acme:certificate'])
 @api.post('/certificates/{serial_number}', response_class=Response, responses={200: {'content': {'application/pem-certificate-chain': {}}}})
 async def download_cert(
     response: Response,
-    serial_number: constr(pattern='^[0-9A-F]+$'),  # type: ignore[valid-type]
+    serial_number: Annotated[str, StringConstraints(pattern='^[0-9A-F]+$')],
     data: Annotated[RequestData, Depends(SignedRequest())],
     accept: str = Header(
         default='*/*', pattern=r'(application/pem\-certificate\-chain|\*/\*)', description='Certificates are only supported as "application/pem-certificate-chain"'
