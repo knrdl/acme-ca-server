@@ -83,7 +83,6 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
     thumbprint = data.key.thumbprint()
     allowed_domains = settings.acme.prevalidated_domains.get(thumbprint, frozenset())
     prevalidated = {domain for domain in domains if domain.lower() in allowed_domains}
-    logger.debug('new order (account: %s, jwk thumbprint: %s, prevalidated domains: %s)', data.account_id, thumbprint, sorted(prevalidated))
     unvalidated = [domain for domain in domains if domain not in prevalidated]
     initial_order_status = 'pending' if unvalidated else 'ready'
 
@@ -103,6 +102,18 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
             insert into challenges (id, authz_id, token, status, validated_at) values ($1, $2, $3, $4, case when $5 then now() end)
             """,
             *[(chal_ids[domain], authz_ids[domain], chal_tkns[domain], 'valid' if domain in prevalidated else 'pending', domain in prevalidated) for domain in domains],
+        )
+
+    if prevalidated:
+        async with db.transaction(readonly=True) as sql:
+            mail_addr = await sql.value("""select mail from accounts where id = $1""", data.account_id)
+        logger.info(
+            'order with prevalidated domains submitted (order: %s, account: %s, mail address: %s, jwk thumbprint: %s, prevalidated domains: %s)',
+            order_id,
+            data.account_id,
+            mail_addr,
+            thumbprint,
+            ', '.join(sorted(prevalidated)),
         )
 
     response.headers['Location'] = f'{settings.external_url}acme/orders/{order_id}'

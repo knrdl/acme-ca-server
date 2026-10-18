@@ -75,14 +75,17 @@ def test_should_handle_unknown_orders(signed_request, directory):
     assert response.json() == view_order_err
 
 
-def test_should_prevalidate_whitelisted_domains(signed_request, directory):
+def test_should_prevalidate_whitelisted_domains(signed_request, directory, caplog):
+    import logging
+
     from config import settings
 
-    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': ['mailto:admin@example.org']})
     account_id = response.headers['Location']
     thumbprint = signed_request.account_jwk.thumbprint()
     settings.acme.prevalidated_domains = {thumbprint: frozenset({'host1.example.org'})}
     try:
+        caplog.set_level(logging.INFO, logger='uvicorn')
         response = signed_request(
             directory['newOrder'],
             response.headers['Replay-Nonce'],
@@ -90,13 +93,17 @@ def test_should_prevalidate_whitelisted_domains(signed_request, directory):
             account_id,
         )
         assert response.json()['status'] == 'ready', response.json()
+        assert 'mail address: admin@example.org' in caplog.text, caplog.text
+        assert 'prevalidated domains: host1.example.org)' in caplog.text.lower(), caplog.text
 
+        caplog.clear()
         response = signed_request(
             directory['newOrder'],
             response.headers['Replay-Nonce'],
             {'identifiers': [{'type': 'dns', 'value': 'host1.example.org'}, {'type': 'dns', 'value': 'host2.example.org'}]},
             account_id,
         )
+        assert 'prevalidated domains: host1.example.org)' in caplog.text, caplog.text
         assert response.json()['status'] == 'pending', response.json()
         statuses = []
         for authz_url in response.json()['authorizations']:
