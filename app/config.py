@@ -106,6 +106,14 @@ class AcmeSettings(BaseSettings):
             result.setdefault(account, set()).update(domain_set)
         return result
 
+    @model_validator(mode='after')
+    def check_prevalidated_domains(self) -> 'AcmeSettings':
+        for account, domains in self.prevalidated_domains.items():
+            for domain in domains:
+                if not self.target_domain_regex.fullmatch(domain):
+                    raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains does not match acme_target_domain_regex')
+        return self
+
 
 class Settings(BaseSettings):
     external_url: AnyHttpUrl
