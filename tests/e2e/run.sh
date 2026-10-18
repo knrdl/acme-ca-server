@@ -27,7 +27,6 @@ openssl req -new -x509 -nodes -days 3650 -subj "/C=XX/O=Test" -key ca.key -out c
 chmod a+r {ca.key,ca.pem}
 
 function start_server() {
-     EXTRA_ARGS=$@
      docker run -dit --name test_server --net test_net -p8080:8080 --network-alias acme.example.org \
         -v "$PWD/ca.key:/import/ca.key:ro" -v "$PWD/ca.pem:/import/ca.pem:ro" \
         -e DB_DSN="postgresql://postgres:secret@test_db/postgres" \
@@ -35,7 +34,7 @@ function start_server() {
         -e web_enable_public_log=true \
         -e EXTERNAL_URL="http://acme.example.org:8080" \
         -e CA_ENCRYPTION_KEY="DaxNj1bTiCsk6aQiY43hz2jDqBZAU5kta1uNBzp_yqo=" \
-        ${EXTRA_ARGS} \
+        "$@" \
         acmeserver
 
      sleep 5
@@ -216,6 +215,44 @@ docker run --rm --name test_cdp1b --net test_net -v "$PWD/acmeshdata:/acme.sh" -
      docker.io/neilpang/acme.sh --issue -d hostcdp1b.example.org --standalone \
      --accountemail cdp1b@example.org --server http://acme.example.org:8080/acme/directory
 ! openssl asn1parse -in "$PWD/acmeshdata/hostcdp1b.example.org_ecc/hostcdp1b.example.org.cer" | grep 'X509v3 CRL Distribution Points'
+
+
+# Prevalidated domains
+
+rm -rf uacmeprevalidated
+mkdir uacmeprevalidated
+
+echo "prevalidated 1 (create account)"
+docker run --rm --name test_prevalidated1 --net test_net -v "$PWD/uacmeprevalidated:/uacme" \
+     uacme uacme -v -c /uacme \
+     --acme-url http://acme.example.org:8080/acme/directory new prevalidated@example.org
+
+# the jwk thumbprint of the account is logged on account creation
+PREVALIDATED_THUMBPRINT=$(docker logs test_server 2>&1 | grep 'new account created' | grep 'mail address: prevalidated@example.org' | sed -E 's/.*jwk thumbprint: ([^ )]+).*/\1/')
+test -n "$PREVALIDATED_THUMBPRINT"
+
+stop_server
+
+# Re-Run server with prevalidated domains (one account per line)
+start_server -e "ACME_PREVALIDATED_DOMAINS=$PREVALIDATED_THUMBPRINT:hostpre1.example.org,hostpre2.example.org"$'\n'"other-account-thumbprint:hostpre3.example.org"
+
+echo "prevalidated 2 (whitelisted domains are issued without a challenge)"
+docker run --rm --name test_prevalidated2 --net test_net -v "$PWD/uacmeprevalidated:/uacme" \
+     uacme uacme -vvv -c /uacme \
+     --acme-url http://acme.example.org:8080/acme/directory issue hostpre1.example.org hostpre2.example.org
+test -f "$PWD/uacmeprevalidated/hostpre1.example.org/cert.pem"
+openssl x509 -in "$PWD/uacmeprevalidated/hostpre1.example.org/cert.pem" -noout -text | grep 'DNS:hostpre2.example.org'
+docker logs test_server 2>&1 | grep 'order with prevalidated domains submitted' | grep 'mail address: prevalidated@example.org' | grep 'hostpre1.example.org, hostpre2.example.org'
+
+echo "prevalidated 3 (not whitelisted domain of the same account still requires a challenge)"
+! docker run --rm --name test_prevalidated3 --net test_net -v "$PWD/uacmeprevalidated:/uacme" \
+     uacme uacme -vvv -c /uacme -h /usr/share/uacme/uacme.sh \
+     --acme-url http://acme.example.org:8080/acme/directory issue hostpre9.example.org
+
+echo "prevalidated 4 (domain whitelisted for another account still requires a challenge)"
+! docker run --rm --name test_prevalidated4 --net test_net -v "$PWD/uacmedata:/uacme" \
+     uacme uacme -vvv -c /uacme -h /usr/share/uacme/uacme.sh \
+     --acme-url http://acme.example.org:8080/acme/directory issue hostpre1.example.org
 
 
 echo "cert expiry mails sent"
