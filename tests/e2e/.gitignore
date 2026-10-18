@@ -2,6 +2,7 @@ certbot/
 traefikdata/
 caddydata/
 uacmedata/
+uacmeprevalidated/
 acmeshdata/
 
 ca.key

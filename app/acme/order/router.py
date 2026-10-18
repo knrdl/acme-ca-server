@@ -79,19 +79,41 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
 
     order_id, authz_ids, chal_ids, chal_tkns = await asyncio.to_thread(generate_tokens_sync, domains)
 
+    # domains which are whitelisted for this account are validated without a challenge
+    thumbprint = data.key.thumbprint()
+    allowed_domains = settings.acme.prevalidated_domains.get(thumbprint, frozenset())
+    prevalidated = frozenset(domain for domain in domains if domain.lower() in allowed_domains)
+    initial_order_status = 'pending' if any(domain not in prevalidated for domain in domains) else 'ready'
+    logger.debug('new order (account: %s, jwk thumbprint: %s, prevalidated domains: %s, initial order status: %s)', data.account_id, thumbprint, sorted(prevalidated), initial_order_status)
+
     async with db.transaction() as sql:
         order_status, expires_at = await sql.record(
-            """insert into orders (id, account_id) values ($1, $2) returning status, expires_at""",
+            """insert into orders (id, account_id, status) values ($1, $2, $3) returning status, expires_at""",
             order_id,
             data.account_id,
+            initial_order_status,
         )
         await sql.execmany(
-            """insert into authorizations (id, order_id, domain) values ($1, $2, $3)""",
-            *[(authz_ids[domain], order_id, domain) for domain in domains],
+            """insert into authorizations (id, order_id, domain, status) values ($1, $2, $3, $4)""",
+            *[(authz_ids[domain], order_id, domain, 'valid' if domain in prevalidated else 'pending') for domain in domains],
         )
         await sql.execmany(
-            """insert into challenges (id, authz_id, token) values ($1, $2, $3)""",
-            *[(chal_ids[domain], authz_ids[domain], chal_tkns[domain]) for domain in domains],
+            """
+            insert into challenges (id, authz_id, token, status, validated_at) values ($1, $2, $3, $4, case when $5 then now() end)
+            """,
+            *[(chal_ids[domain], authz_ids[domain], chal_tkns[domain], 'valid' if domain in prevalidated else 'pending', domain in prevalidated) for domain in domains],
+        )
+
+    if prevalidated:
+        async with db.transaction(readonly=True) as sql:
+            mail_addr = await sql.value("""select mail from accounts where id = $1""", data.account_id)
+        logger.info(
+            'order with prevalidated domains submitted (order: %s, account: %s, mail address: %s, jwk thumbprint: %s, prevalidated domains: %s)',
+            order_id,
+            data.account_id,
+            mail_addr,
+            thumbprint,
+            ', '.join(sorted(prevalidated)),
         )
 
     response.headers['Location'] = f'{settings.external_url}acme/orders/{order_id}'
