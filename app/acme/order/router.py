@@ -83,8 +83,7 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
     thumbprint = data.key.thumbprint()
     allowed_domains = settings.acme.prevalidated_domains.get(thumbprint, frozenset())
     prevalidated = {domain for domain in domains if domain.lower() in allowed_domains}
-    unvalidated = [domain for domain in domains if domain not in prevalidated]
-    initial_order_status = 'pending' if unvalidated else 'ready'
+    initial_order_status = 'pending' if any(domain not in prevalidated for domain in domains) else 'ready'
     logger.debug('new order (account: %s, jwk thumbprint: %s, prevalidated domains: %s, initial order status: %s)', data.account_id, thumbprint, sorted(prevalidated), initial_order_status)
 
     async with db.transaction() as sql:
