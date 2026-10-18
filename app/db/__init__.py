@@ -1,12 +1,13 @@
 import json
-from typing import Any
+from collections.abc import AsyncGenerator
+from typing import Any, Self
 
 import asyncpg
 from config import settings
 from logger import logger
 from pydantic import BaseModel
 
-_POOL: asyncpg.pool.Pool = None
+_POOL: asyncpg.pool.Pool | None = None
 
 
 async def connect():
@@ -15,7 +16,8 @@ async def connect():
 
 
 async def disconnect():
-    await _POOL.close()
+    if _POOL is not None:
+        await _POOL.close()
 
 
 async def init_connection(conn: asyncpg.Connection):
@@ -24,26 +26,28 @@ async def init_connection(conn: asyncpg.Connection):
 
 def _encode_json(payload: Any) -> str:
     if isinstance(payload, BaseModel):
-        return payload.json()
+        return payload.model_dump_json()
     else:
         return json.dumps(payload)
 
 
 class transaction:  # pylint: disable=invalid-name
-    readonly = False
+    readonly: bool = False
 
-    def __init__(self, readonly=False) -> None:
+    def __init__(self, readonly: bool = False) -> None:
         self.readonly = readonly
-        self.conn: asyncpg.Connection = None
-        self.trans: asyncpg.connection.transaction = None
+        self.conn: asyncpg.Connection
+        self.trans: asyncpg.connection.transaction
 
-    async def __aenter__(self, *args, **kwargs):
+    async def __aenter__(self) -> Self:
+        if not _POOL:
+            raise RuntimeError('database pool not initialized')
         self.conn = await _POOL.acquire()
         self.trans = self.conn.transaction(readonly=self.readonly)
         await self.trans.start()
         return self
 
-    async def __call__(self, *args):
+    async def __call__(self, *args) -> AsyncGenerator[Any, None]:
         """fetch response for query"""
         async for rec in self.conn.cursor(*args):
             yield rec

@@ -1,3 +1,4 @@
+import re
 import sys
 from datetime import timedelta
 from pathlib import Path
@@ -23,7 +24,7 @@ class CaSettings(BaseSettings):
     crl_lifetime: timedelta = timedelta(days=7)
     cert_cdp_enabled: bool = True
     encryption_key: SecretStr | None = None  # encryption of private keys in database
-    import_dir: Path = '/import'  # type: ignore[assignment]
+    import_dir: Path = Path('/import')
 
     model_config = SettingsConfigDict(env_prefix='ca_', secrets_dir='/run/secrets')
 
@@ -80,9 +81,9 @@ class MailSettings(BaseSettings):
 
 class AcmeSettings(BaseSettings):
     terms_of_service_url: AnyHttpUrl | None = None
-    mail_target_regex: Pattern = r'[^@]+@[^@]+\.[^@]+'  # type: ignore[assignment]
+    mail_target_regex: Pattern = re.compile(r'[^@]+@[^@]+\.[^@]+')
     mail_required: bool = True
-    target_domain_regex: Pattern = r'[^\*]+\.[^\.]+'  # type: ignore[assignment]  # disallow wildcard
+    target_domain_regex: Pattern = re.compile(r'[^\*]+\.[^\.]+')  # disallow wildcard
 
     # one line per account: <account jwk thumbprint>:<domain a>,<domain b>
     prevalidated_domains: Annotated[dict[str, frozenset[str]], NoDecode] = {}

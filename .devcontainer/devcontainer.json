@@ -1,0 +1,42 @@
+{
+  "name": "acme-ca-server",
+  "image": "mcr.microsoft.com/devcontainers/python:3.14-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    }
+  },
+  "runArgs": ["--init", "--privileged"],
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "ACME CA Server",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "python -m pip install --upgrade pip && pip install -r requirements.txt && pip install flake8 flake8-bandit flake8-bugbear flake8-builtins flake8-comprehensions flake8-deprecated flake8-isort flake8-print flake8-quotes flake8-todo pylint ruff mypy",
+  "containerEnv": {
+    "PYTHONPATH": "/workspaces/acme-ca-server/app"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.mypy-type-checker",
+        "ms-azuretools.vscode-containers"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "tests/pytest"
+        ],
+        "python.testing.unittestEnabled": false,
+        "python.analysis.typeCheckingMode": "basic",
+        "editor.formatOnSave": true
+      }
+    }
+  }
+}
