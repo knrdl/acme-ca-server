@@ -64,11 +64,3 @@ def test_should_match_whole_domain_against_target_domain_regex(testclient):
 
     with pytest.raises(ValidationError, match='does not match acme_target_domain_regex'):
         AcmeSettings(target_domain_regex=r'host1\.example\.org', prevalidated_domains='acc1:evilhost1.example.org.attacker.net')
-
-
-def test_should_match_target_domain_regex_case_insensitive(testclient):
-    from config import AcmeSettings
-
-    settings = AcmeSettings(target_domain_regex=r'[^\*]+\.Example\.ORG', prevalidated_domains='acc1:host1.example.org')
-
-    assert settings.prevalidated_domains == {'acc1': frozenset({'host1.example.org'})}

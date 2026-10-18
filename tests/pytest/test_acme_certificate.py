@@ -74,8 +74,8 @@ def test_should_issue_certificate_for_mixed_case_domains(signed_request, directo
     mock_challenge_file_contents = f'{challenge_token}.{signed_request.account_jwk.thumbprint()}'.rstrip()
 
     with mock.patch(
-        'app.acme.challenge.service.httpx.AsyncClient.get',
-        return_value=httpx.Response(200, text=mock_challenge_file_contents),
+        'app.acme.challenge.service.httpx2.AsyncClient.get',
+        return_value=httpx2.Response(200, text=mock_challenge_file_contents),
     ) as mock_get:
         response = signed_request(challenge_url, response.headers['Replay-Nonce'], '', account_id)
 
