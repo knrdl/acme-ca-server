@@ -1,6 +1,6 @@
 import json
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, Self
 
 import asyncpg
 from config import settings
@@ -26,20 +26,20 @@ async def init_connection(conn: asyncpg.Connection):
 
 def _encode_json(payload: Any) -> str:
     if isinstance(payload, BaseModel):
-        return payload.json()
+        return payload.model_dump_json()
     else:
         return json.dumps(payload)
 
 
 class transaction:  # pylint: disable=invalid-name
-    readonly = False
+    readonly: bool = False
 
     def __init__(self, readonly: bool = False) -> None:
         self.readonly = readonly
         self.conn: asyncpg.Connection
         self.trans: asyncpg.connection.transaction
 
-    async def __aenter__(self) -> transaction:
+    async def __aenter__(self) -> Self:
         if not _POOL:
             raise RuntimeError('database pool not initialized')
         self.conn = await _POOL.acquire()
