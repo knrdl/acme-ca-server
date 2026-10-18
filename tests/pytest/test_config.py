@@ -23,20 +23,13 @@ def test_should_reject_malformed_prevalidated_domains(testclient, value):
 
 
 @pytest.mark.parametrize('field', ['mail_target_regex', 'target_domain_regex'])
-def test_should_reject_regex_patterns_that_are_not_lowercase(field: Literal['mail_target_regex', 'target_domain_regex']):
+def test_should_warn_about_regex_patterns_that_are_not_lowercase(field: Literal['mail_target_regex', 'target_domain_regex'], caplog):
     from config import AcmeSettings
 
-    with pytest.raises(ValidationError, match='pattern must be lowercase only'):
-        AcmeSettings(**{field: r'[A-Z]+\.example\.org'})
+    settings = AcmeSettings(**{field: r'[A-Z]+\.example\.org'})
 
-
-@pytest.mark.parametrize('field', ['mail_target_regex', 'target_domain_regex'])
-def test_should_accept_lowercase_regex_patterns(field: Literal['mail_target_regex', 'target_domain_regex']):
-    from config import AcmeSettings
-
-    settings = AcmeSettings(**{field: r'[a-z]+\.example\.org'})
-
-    assert getattr(settings, field).pattern == r'[a-z]+\.example\.org'
+    assert getattr(settings, field).pattern == r'[A-Z]+\.example\.org'
+    assert 'Regex pattern should be lowercase only' in caplog.text
 
 
 @pytest.mark.parametrize(

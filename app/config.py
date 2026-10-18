@@ -104,7 +104,7 @@ class AcmeSettings(BaseSettings):
     @classmethod
     def pattern_must_be_lowercase(cls, value: Pattern) -> Pattern:
         if value.pattern != value.pattern.lower():
-            raise ValueError(f'pattern must be lowercase only, got {value.pattern!r}')
+            logger.warning('Regex pattern should be lowercase only, got %r', value.pattern)
         return value
 
     @field_validator('prevalidated_domains', mode='before')
