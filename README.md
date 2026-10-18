@@ -58,7 +58,7 @@ services:
     mem_limit: 250m
 
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: always
     environment:
       POSTGRES_PASSWORD: secret  # use a strong password: `openssl rand -hex 32`
