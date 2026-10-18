@@ -82,7 +82,7 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
     # domains which are whitelisted for this account are validated without a challenge
     thumbprint = data.key.thumbprint()
     allowed_domains = settings.acme.prevalidated_domains.get(thumbprint, frozenset())
-    prevalidated = {domain for domain in domains if domain.lower() in allowed_domains}
+    prevalidated = frozenset(domain for domain in domains if domain.lower() in allowed_domains)
     initial_order_status = 'pending' if any(domain not in prevalidated for domain in domains) else 'ready'
     logger.debug('new order (account: %s, jwk thumbprint: %s, prevalidated domains: %s, initial order status: %s)', data.account_id, thumbprint, sorted(prevalidated), initial_order_status)
 
