@@ -1,6 +1,6 @@
 from unittest import mock
 
-import httpx
+import httpx2
 import jwcrypto
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -26,8 +26,8 @@ def test_should_revoke_certificate(signed_request, directory):
     mock_challenge_file_contents = f'{challenge_token}.{signed_request.account_jwk.thumbprint()}'.rstrip()
 
     with mock.patch(
-        'app.acme.challenge.service.httpx.AsyncClient.get',
-        return_value=httpx.Response(200, text=mock_challenge_file_contents),
+        'app.acme.challenge.service.httpx2.AsyncClient.get',
+        return_value=httpx2.Response(200, text=mock_challenge_file_contents),
     ) as mock_get:
         response = signed_request(challenge_url, response.headers['Replay-Nonce'], '', account_id)
 

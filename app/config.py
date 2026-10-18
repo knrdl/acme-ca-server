@@ -90,6 +90,13 @@ class AcmeSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix='acme_', secrets_dir='/run/secrets')
 
+    @field_validator('mail_target_regex', 'target_domain_regex')
+    @classmethod
+    def pattern_must_be_lowercase(cls, value: Pattern) -> Pattern:
+        if value.pattern != value.pattern.lower():
+            raise ValueError(f'pattern must be lowercase only, got {value.pattern!r}')
+        return value
+
     @field_validator('prevalidated_domains', mode='before')
     @classmethod
     def parse_prevalidated_domains(cls, value: Any) -> Any:

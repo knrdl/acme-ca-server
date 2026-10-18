@@ -1,5 +1,6 @@
 import pytest
 from pydantic import ValidationError
+from typing import Literal
 
 
 def test_should_parse_prevalidated_domains(testclient):
@@ -19,6 +20,23 @@ def test_should_reject_malformed_prevalidated_domains(testclient, value):
 
     with pytest.raises(ValidationError, match='Invalid entry'):
         AcmeSettings(prevalidated_domains=value)
+
+
+@pytest.mark.parametrize('field', ['mail_target_regex', 'target_domain_regex'])
+def test_should_reject_regex_patterns_that_are_not_lowercase(field: Literal['mail_target_regex', 'target_domain_regex']):
+    from config import AcmeSettings
+
+    with pytest.raises(ValidationError, match='pattern must be lowercase only'):
+        AcmeSettings(**{field: r'[A-Z]+\.example\.org'})
+
+
+@pytest.mark.parametrize('field', ['mail_target_regex', 'target_domain_regex'])
+def test_should_accept_lowercase_regex_patterns(field: Literal['mail_target_regex', 'target_domain_regex']):
+    from config import AcmeSettings
+
+    settings = AcmeSettings(**{field: r'[a-z]+\.example\.org'})
+
+    assert getattr(settings, field).pattern == r'[a-z]+\.example\.org'
 
 
 def test_should_reject_prevalidated_domains_not_matching_target_domain_regex(testclient):

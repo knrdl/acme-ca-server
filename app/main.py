@@ -69,7 +69,7 @@ async def acme_exception_handler(request: Request, exc: Exception):
         if isinstance(exc, ACMEException):
             return await exc.as_response()
         elif isinstance(exc, ValidationError):
-            return await ACMEException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, exctype='malformed', detail=exc.json()).as_response()
+            return await ACMEException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, exctype='malformed', detail=exc.json()).as_response()
         elif isinstance(exc, HTTPException):
             return await ACMEException(status_code=exc.status_code, exctype='serverInternal', detail=str(exc.detail)).as_response()
         else:
