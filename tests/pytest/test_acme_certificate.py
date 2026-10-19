@@ -56,3 +56,36 @@ def test_should_revoke_certificate(signed_request, directory):
     assert response.status_code == 400
     assert response.headers['Content-Type'] == 'application/problem+json'
     assert response.json()['type'] == 'urn:ietf:params:acme:error:alreadyRevoked'
+
+
+def test_should_issue_certificate_for_mixed_case_domains(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': [_mail_address]})
+    account_id = response.headers['Location']
+
+    response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'dns', 'value': 'Mixed.Example.COM'}]}, account_id)
+    assert response.json()['identifiers'] == [{'type': 'dns', 'value': 'mixed.example.com'}]
+    authz_url = response.json()['authorizations'][0]
+    finalize_order_url = response.json()['finalize']
+
+    response = signed_request(authz_url, response.headers['Replay-Nonce'], '', account_id)
+    challenge_token = response.json()['challenges'][0]['token']
+    challenge_url = response.json()['challenges'][0]['url']
+
+    mock_challenge_file_contents = f'{challenge_token}.{signed_request.account_jwk.thumbprint()}'.rstrip()
+
+    with mock.patch(
+        'app.acme.challenge.service.httpx2.AsyncClient.get',
+        return_value=httpx2.Response(200, text=mock_challenge_file_contents),
+    ) as mock_get:
+        response = signed_request(challenge_url, response.headers['Replay-Nonce'], '', account_id)
+
+    mock_get.assert_called_once_with(f'http://mixed.example.com:80/.well-known/acme-challenge/{challenge_token}')
+
+    csr = build_csr(['MIXED.example.com'])
+
+    response = signed_request(finalize_order_url, response.headers['Replay-Nonce'], {'csr': jwcrypto.common.base64url_encode(csr.public_bytes(Encoding.DER))}, account_id)
+    assert response.json()['status'] == 'valid', response.json()
+
+    response = signed_request(response.json()['certificate'], response.headers['Replay-Nonce'], {}, account_id)
+    signed_cert = x509.load_pem_x509_certificate(response.content)
+    assert signed_cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value == 'mixed.example.com'

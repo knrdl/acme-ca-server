@@ -18,7 +18,7 @@ from ..middleware import RequestData, SignedRequest
 
 class NewOrderDomain(BaseModel):
     type: Literal['dns']  # noqa: A003 (allow shadowing builtin "type")
-    value: Annotated[str, StringConstraints(pattern=settings.acme.target_domain_regex_pattern)]
+    value: Annotated[str, StringConstraints(to_lower=True, pattern=settings.acme.target_domain_regex_pattern)]
 
 
 class NewOrderPayload(BaseModel):

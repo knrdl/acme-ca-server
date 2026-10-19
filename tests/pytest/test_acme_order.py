@@ -112,3 +112,29 @@ def test_should_prevalidate_whitelisted_domains(signed_request, directory, caplo
         assert sorted(statuses) == [('host1.example.org', 'valid'), ('host2.example.org', 'pending')], statuses
     finally:
         settings.acme.prevalidated_domains = {}
+
+
+def test_should_lowercase_domains(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    response = signed_request(
+        directory['newOrder'],
+        response.headers['Replay-Nonce'],
+        {
+            'identifiers': [
+                {'type': 'dns', 'value': 'Host1.Example.ORG'},
+                {'type': 'dns', 'value': 'host1.example.org'},
+                {'type': 'dns', 'value': 'HOST2.example.org'},
+            ]
+        },
+        account_id,
+    )
+    assert response.status_code == 201, response.json()
+    assert sorted(identifier['value'] for identifier in response.json()['identifiers']) == ['host1.example.org', 'host2.example.org']
+
+    authz_values = []
+    for authz_url in response.json()['authorizations']:
+        response = signed_request(authz_url, response.headers['Replay-Nonce'], '', account_id)
+        authz_values.append(response.json()['identifier']['value'])
+    assert sorted(authz_values) == ['host1.example.org', 'host2.example.org']
