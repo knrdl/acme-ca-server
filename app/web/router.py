@@ -1,12 +1,12 @@
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 import db
 from config import settings
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
-from pydantic import constr
+from pydantic import StringConstraints
 
 template_engine = Environment(loader=FileSystemLoader(Path(__file__).parent / 'templates'), enable_async=True, autoescape=True)
 
@@ -59,7 +59,7 @@ if settings.web.enable_public_log:
         return await template_engine.get_template('cert-log.html').render_async(**default_params, certs=certs, certstatus=certstatus, domainfilter=domainfilter)
 
     @api.get('/certificates/{serial_number}', response_class=Response, responses={200: {'content': {'application/pem-certificate-chain': {}}}})
-    async def download_certificate(serial_number: constr(pattern='^[0-9A-F]+$')):  # type: ignore[valid-type]
+    async def download_certificate(serial_number: Annotated[str, StringConstraints(pattern='^[0-9A-F]+$')]):
         async with db.transaction(readonly=True) as sql:
             pem_chain = await sql.value("""select chain_pem from certificates where serial_number = $1""", serial_number)
         if not pem_chain:

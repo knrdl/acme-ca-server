@@ -9,7 +9,7 @@ from config import settings
 from fastapi import APIRouter, Depends, Response, status
 from jwcrypto.common import base64url_decode
 from logger import logger
-from pydantic import BaseModel, conlist, constr
+from pydantic import BaseModel, Field, StringConstraints
 
 from ..certificate.service import SerialNumberConverter, check_csr
 from ..exceptions import ACMEException
@@ -18,17 +18,17 @@ from ..middleware import RequestData, SignedRequest
 
 class NewOrderDomain(BaseModel):
     type: Literal['dns']  # noqa: A003 (allow shadowing builtin "type")
-    value: constr(to_lower=True, pattern=f'(?i)^{settings.acme.target_domain_regex.pattern.strip().removeprefix("^").removesuffix("$")}$')  # type: ignore[valid-type]
+    value: Annotated[str, StringConstraints(to_lower=True, pattern=settings.acme.target_domain_regex_pattern)]
 
 
 class NewOrderPayload(BaseModel):
-    identifiers: conlist(NewOrderDomain, min_length=1)  # type: ignore[valid-type]
+    identifiers: Annotated[list[NewOrderDomain], Field(min_length=1)]
     notBefore: datetime | None = None
     notAfter: datetime | None = None
 
 
 class FinalizeOrderPayload(BaseModel):
-    csr: constr(min_length=1, max_length=1 * 1024**2)  # type: ignore[valid-type]
+    csr: Annotated[str, StringConstraints(min_length=1, max_length=1 * 1024**2)]
 
 
 def order_response(

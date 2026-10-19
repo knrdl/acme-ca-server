@@ -2,7 +2,7 @@ import re
 import sys
 from datetime import timedelta
 from pathlib import Path
-from re import IGNORECASE, Pattern, fullmatch
+from re import Pattern
 from typing import Annotated, Any, Literal
 
 from logger import logger
@@ -90,11 +90,21 @@ class AcmeSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix='acme_', secrets_dir='/run/secrets')
 
+    @property
+    def mailto_target_regex_pattern(self) -> Pattern:
+        pattern = f'^mailto:{self.mail_target_regex.pattern.strip().removeprefix("^").removesuffix("$")}$'
+        return re.compile(pattern)
+
+    @property
+    def target_domain_regex_pattern(self) -> Pattern:
+        pattern = f'^{self.target_domain_regex.pattern.strip().removeprefix("^").removesuffix("$")}$'
+        return re.compile(pattern)
+
     @field_validator('mail_target_regex', 'target_domain_regex')
     @classmethod
     def pattern_must_be_lowercase(cls, value: Pattern) -> Pattern:
         if value.pattern != value.pattern.lower():
-            raise ValueError(f'pattern must be lowercase only, got {value.pattern!r}')
+            logger.warning('Regex pattern should be lowercase only, got %r', value.pattern)
         return value
 
     @field_validator('prevalidated_domains', mode='before')
@@ -118,7 +128,7 @@ class AcmeSettings(BaseSettings):
     def check_prevalidated_domains(self) -> 'AcmeSettings':
         for account, domains in self.prevalidated_domains.items():
             for domain in domains:
-                if not fullmatch(self.target_domain_regex.pattern, domain, flags=IGNORECASE):
+                if not self.target_domain_regex_pattern.fullmatch(domain):
                     raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains does not match acme_target_domain_regex')
         return self
 

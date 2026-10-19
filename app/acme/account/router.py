@@ -6,19 +6,19 @@ import mail
 from config import settings
 from fastapi import APIRouter, Depends, Response, status
 from logger import logger
-from pydantic import BaseModel, conlist, constr
+from pydantic import BaseModel, Field, StringConstraints
 
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest
 
-tosAgreedType = Literal[True] if settings.acme.terms_of_service_url else (bool | None)
-contactType = conlist(
-    constr(strip_whitespace=True, to_lower=True, pattern=f'^mailto:{settings.acme.mail_target_regex.pattern.strip().removeprefix("^").removesuffix("$")}$'),
-    min_length=1,
-    max_length=1,
-)
+TosAgreedType = Literal[True] if settings.acme.terms_of_service_url else (bool | None)
+
+EmailType = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True, pattern=settings.acme.mailto_target_regex_pattern)]
+
+ContactType = Annotated[list[EmailType], Field(min_length=1, max_length=1)]
 if not settings.acme.mail_required:
-    contactType = contactType | conlist(str, min_length=0, max_length=0) | None  # type: ignore[assignment]
+    EmptyContactType = Annotated[list[str], Field(min_length=0, max_length=0)]
+    ContactType = ContactType | EmptyContactType | None  # type: ignore[assignment, misc]
 
 
 class NewOrViewAccountPayload(BaseModel):
@@ -28,8 +28,8 @@ class NewOrViewAccountPayload(BaseModel):
 
 
 class NewAccountPayload(BaseModel):
-    contact: contactType = []  # type: ignore[valid-type]
-    termsOfServiceAgreed: tosAgreedType = None  # type: ignore[valid-type]
+    contact: ContactType = []  # type: ignore[valid-type]
+    termsOfServiceAgreed: TosAgreedType = None  # type: ignore[valid-type]
     onlyReturnExisting: Literal[False] = False
 
     @property
@@ -39,7 +39,7 @@ class NewAccountPayload(BaseModel):
 
 class UpdateAccountPayload(BaseModel):
     status: Literal['deactivated'] | None = None
-    contact: contactType | None = None  # type: ignore[valid-type]
+    contact: ContactType | None = None  # type: ignore[valid-type]
 
     @property
     def mail_addr(self) -> str | None:

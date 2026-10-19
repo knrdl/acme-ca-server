@@ -1,4 +1,5 @@
 import asyncio
+from typing import Annotated
 
 import db
 from acme.certificate.service import SerialNumberConverter
@@ -7,7 +8,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from fastapi import APIRouter, HTTPException, Response, status
 from logger import logger
-from pydantic import constr
+from pydantic import StringConstraints
 
 router = APIRouter(prefix='/ca', tags=['ca'])
 
@@ -18,7 +19,7 @@ if settings.ca.enabled:
     from .service import build_crl_sync
 
     @router.get('/{serial_number}/crl', response_class=Response, responses={200: {'content': {'application/pkix-crl': {}}}})
-    async def download_crl(serial_number: constr(pattern='^[0-9A-F]+$')):  # type: ignore[valid-type]
+    async def download_crl(serial_number: Annotated[str, StringConstraints(pattern='^[0-9A-F]+$')]):
         async with db.transaction(readonly=True) as sql:
             crl_pem = await sql.value("""select crl_pem from cas where serial_number = $1""", serial_number)
         if crl_pem:

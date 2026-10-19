@@ -23,20 +23,47 @@ def test_should_reject_malformed_prevalidated_domains(testclient, value):
 
 
 @pytest.mark.parametrize('field', ['mail_target_regex', 'target_domain_regex'])
-def test_should_reject_regex_patterns_that_are_not_lowercase(field: Literal['mail_target_regex', 'target_domain_regex']):
+def test_should_warn_about_regex_patterns_that_are_not_lowercase(field: Literal['mail_target_regex', 'target_domain_regex'], caplog):
     from config import AcmeSettings
 
-    with pytest.raises(ValidationError, match='pattern must be lowercase only'):
-        AcmeSettings(**{field: r'[A-Z]+\.example\.org'})
+    settings = AcmeSettings(**{field: r'[A-Z]+\.example\.org'})
+
+    assert getattr(settings, field).pattern == r'[A-Z]+\.example\.org'
+    assert 'Regex pattern should be lowercase only' in caplog.text
 
 
-@pytest.mark.parametrize('field', ['mail_target_regex', 'target_domain_regex'])
-def test_should_accept_lowercase_regex_patterns(field: Literal['mail_target_regex', 'target_domain_regex']):
+@pytest.mark.parametrize(
+    ('pattern', 'expected'),
+    [
+        (r'[^@]+@example\.org', r'^mailto:[^@]+@example\.org$'),
+        (r' ^[^@]+@example\.org$ ', r'^mailto:[^@]+@example\.org$'),
+    ],
+)
+def test_mailto_target_regex_pattern_is_anchored(pattern: str, expected: str):
     from config import AcmeSettings
 
-    settings = AcmeSettings(**{field: r'[a-z]+\.example\.org'})
+    settings = AcmeSettings(mail_target_regex=pattern)
 
-    assert getattr(settings, field).pattern == r'[a-z]+\.example\.org'
+    assert settings.mailto_target_regex_pattern.pattern == expected
+    assert settings.mailto_target_regex_pattern.fullmatch('mailto:user@example.org')
+    assert not settings.mailto_target_regex_pattern.fullmatch('mailto:user@example.org.attacker')
+
+
+@pytest.mark.parametrize(
+    ('pattern', 'expected'),
+    [
+        (r'[a-z]+\.example\.org', r'^[a-z]+\.example\.org$'),
+        (r' ^[a-z]+\.example\.org$ ', r'^[a-z]+\.example\.org$'),
+    ],
+)
+def test_target_domain_regex_pattern_is_anchored(pattern: str, expected: str):
+    from config import AcmeSettings
+
+    settings = AcmeSettings(target_domain_regex=pattern)
+
+    assert settings.target_domain_regex_pattern.pattern == expected
+    assert settings.target_domain_regex_pattern.fullmatch('host.example.org')
+    assert not settings.target_domain_regex_pattern.fullmatch('evilhost.example.org.attacker.net')
 
 
 def test_should_reject_prevalidated_domains_not_matching_target_domain_regex(testclient):
