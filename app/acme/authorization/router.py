@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 import db
 from config import settings
 from fastapi import APIRouter, Depends, status
+from identifiers import identifier_type
 from pydantic import BaseModel
 
 from ..exceptions import ACMEException
@@ -56,7 +57,7 @@ async def view_or_update_authorization(
         return {
             'status': authz_status,
             'expires': expires_at,
-            'identifier': {'type': 'dns', 'value': domain},
+            'identifier': {'type': identifier_type(domain), 'value': domain},
             'challenges': [{k: v for k, v in chal.items() if v is not None}],
         }
     else:

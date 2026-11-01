@@ -1,6 +1,7 @@
+from typing import Literal
+
 import pytest
 from pydantic import ValidationError
-from typing import Literal
 
 
 def test_should_parse_prevalidated_domains(testclient):
@@ -76,6 +77,19 @@ def test_should_reject_prevalidated_domains_not_matching_target_domain_regex(tes
 
     with pytest.raises(ValidationError, match='does not match acme_target_domain_regex'):
         AcmeSettings(target_domain_regex=r'[^\*]+\.example\.org', prevalidated_domains='acc1:host1.example.net')
+
+    # an IP is only prevalidatable when it matches the regex, so a DNS-only pattern rejects it
+    with pytest.raises(ValidationError, match='does not match acme_target_domain_regex'):
+        AcmeSettings(target_domain_regex=r'[a-z-]+(\.[a-z-]+)+', prevalidated_domains='acc1:192.0.2.1')
+
+
+def test_should_accept_prevalidated_ip_identifiers(testclient):
+    from config import AcmeSettings
+
+    # the default regex matches valid IPv4/IPv6 addresses, so they may be prevalidated
+    settings = AcmeSettings(prevalidated_domains='acc1:192.0.2.1,2001:db8::1')
+
+    assert settings.prevalidated_domains == {'acc1': frozenset({'192.0.2.1', '2001:db8::1'})}
 
 
 def test_should_accept_prevalidated_domains_matching_custom_target_domain_regex(testclient):

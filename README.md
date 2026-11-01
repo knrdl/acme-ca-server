@@ -114,7 +114,7 @@ For instance, `DB_DSN` can be provided either as an env var or as a file at `/ru
 | ACME_TERMS_OF_SERVICE_URL        | `None`        | Optional URL which the ACME client can show when the user has to accept the terms of service, e.g. https://acme.mydomain.org/terms             |
 | ACME_MAIL_REQUIRED        | `True`       | whether the user has to provide a mail address to obtain certificates via the ACME client (recommended)        |
 | ACME_MAIL_TARGET_REGEX        | any mail address       | restrict the format of user-provided mail addresses. E.g. `[^@]+@mydomain\.org` only allows mail addresses from mydomain.org             |
-| ACME_TARGET_DOMAIN_REGEX        | any non-wildcard domain name       | restrict the domain names for which certificates can be requested via ACME. E.g. `[^\*]+\.mydomain\.org` only allows domain names from mydomain.org             |
+| ACME_TARGET_DOMAIN_REGEX        | any non-wildcard domain name or IP address       | restrict the identifiers (`dns` and `ip`) for which certificates can be requested. E.g. `[^\*]+\.mydomain\.org` allows DNS only             |
 | ACME_PREVALIDATED_DOMAINS        | none       | domains which are accepted without a Challenge for specific accounts. Format: one line per account, `<account>:<domain a>,<domain b>`. Further information: https://github.com/knrdl/acme-ca-server/pull/333 |
 | CA_ENABLED        | `True`       | whether the internal CA is enabled, set this to false when providing a custom CA implementation  |
 | CA_ENCRYPTION_KEY        | will be generated if not provided       | the key to protect the CA private keys at rest (encrypted in the database)  |

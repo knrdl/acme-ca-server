@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_should_ignore_duplicated_domains(signed_request, directory):
     response = signed_request(directory['newAccount'], signed_request.nonce, {})
     account_id = response.headers['Location']
@@ -138,3 +141,127 @@ def test_should_lowercase_domains(signed_request, directory):
         response = signed_request(authz_url, response.headers['Replay-Nonce'], '', account_id)
         authz_values.append(response.json()['identifier']['value'])
     assert sorted(authz_values) == ['host1.example.org', 'host2.example.org']
+
+
+def test_should_accept_ip_identifiers(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    response = signed_request(
+        directory['newOrder'],
+        response.headers['Replay-Nonce'],
+        {
+            'identifiers': [
+                {'type': 'ip', 'value': '192.0.2.1'},
+                # uppercase IPv6 is lowercased and normalized to its compressed form
+                {'type': 'ip', 'value': '2001:DB8:0000:0000:0000:0000:0000:0001'},
+            ]
+        },
+        account_id,
+    )
+    assert response.status_code == 201, response.json()
+    assert {(i['type'], i['value']) for i in response.json()['identifiers']} == {('ip', '192.0.2.1'), ('ip', '2001:db8::1')}, response.json()
+
+    authz_values = []
+    for authz_url in response.json()['authorizations']:
+        response = signed_request(authz_url, response.headers['Replay-Nonce'], '', account_id)
+        authz_values.append(response.json()['identifier'])
+    assert {(i['type'], i['value']) for i in authz_values} == {('ip', '192.0.2.1'), ('ip', '2001:db8::1')}
+
+
+def test_should_reject_invalid_ip_identifiers(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'ip', 'value': 'not-an-ip'}]}, account_id)
+    assert response.status_code == 400
+    assert response.headers['Content-Type'] == 'application/problem+json'
+    assert response.json()['type'] == 'urn:ietf:params:acme:error:malformed'
+    assert 'invalid ip address' in response.json()['detail']
+
+
+@pytest.mark.parametrize('value', ['dead:beef', ':', '::', 'fe80::'])
+def test_should_reject_non_dns_values_as_dns_identifiers(signed_request, directory, value):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'dns', 'value': value}]}, account_id)
+    assert response.status_code == 400
+    assert response.headers['Content-Type'] == 'application/problem+json'
+    assert response.json()['type'] == 'urn:ietf:params:acme:error:malformed'
+    assert 'invalid dns identifier' in response.json()['detail']
+
+
+def test_should_reject_ip_identifiers_declared_as_dns(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    # an IP address must be requested with type "ip", not "dns"
+    response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'dns', 'value': '192.0.2.1'}]}, account_id)
+    assert response.status_code == 400
+    assert response.json()['type'] == 'urn:ietf:params:acme:error:malformed'
+    assert 'invalid dns identifier' in response.json()['detail']
+
+
+def test_should_reject_identifiers_exceeding_max_length(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    # bounds the identifier length (and thus the regex input) to protect against pathological input
+    response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'dns', 'value': 'a' * 254 + '.example.org'}]}, account_id)
+    assert response.status_code == 400
+    assert response.json()['type'] == 'urn:ietf:params:acme:error:malformed'
+    assert 'exceeds max length' in response.json()['detail']
+
+
+def test_should_reject_ip_identifiers_when_target_domain_regex_is_dns_only(signed_request, directory):
+    import re
+
+    from config import settings
+
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+    original = settings.acme.target_domain_regex
+    # a DNS-only pattern (letters/dashes, no digits) cannot match an IP address
+    settings.acme.target_domain_regex = re.compile(r'[a-z-]+(\.[a-z-]+)+')
+    try:
+        response = signed_request(
+            directory['newOrder'],
+            response.headers['Replay-Nonce'],
+            {'identifiers': [{'type': 'ip', 'value': '192.0.2.1'}]},
+            account_id,
+        )
+        assert response.status_code != 201
+        assert response.headers['Content-Type'] == 'application/problem+json'
+        assert response.json()['type'] == 'urn:ietf:params:acme:error:malformed'
+
+        # a matching DNS domain is still accepted
+        response = signed_request(
+            directory['newOrder'],
+            response.headers['Replay-Nonce'],
+            {'identifiers': [{'type': 'dns', 'value': 'mail.example.org'}]},
+            account_id,
+        )
+        assert response.status_code == 201, response.json()
+    finally:
+        settings.acme.target_domain_regex = original
+
+
+def test_should_accept_ip_identifiers_under_default_target_domain_regex(signed_request, directory):
+    from config import settings
+
+    # the default regex gates identifiers but also matches valid IPv4/IPv6 addresses
+    assert settings.acme.target_domain_regex_pattern.fullmatch('192.0.2.1')
+    assert settings.acme.target_domain_regex_pattern.fullmatch('2001:db8::1')
+
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    response = signed_request(
+        directory['newOrder'],
+        response.headers['Replay-Nonce'],
+        {'identifiers': [{'type': 'ip', 'value': '2001:db8::1'}]},
+        account_id,
+    )
+    assert response.status_code == 201, response.json()
+    assert {(i['type'], i['value']) for i in response.json()['identifiers']} == {('ip', '2001:db8::1')}, response.json()

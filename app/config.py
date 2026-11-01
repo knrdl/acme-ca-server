@@ -83,7 +83,8 @@ class AcmeSettings(BaseSettings):
     terms_of_service_url: AnyHttpUrl | None = None
     mail_target_regex: Pattern = re.compile(r'[^@]+@[^@]+\.[^@]+')
     mail_required: bool = True
-    target_domain_regex: Pattern = re.compile(r'[^\*]+\.[^\.]+')  # disallow wildcard
+    # gates all identifiers (dns and ip); the default also accepts valid IPv4/IPv6 addresses
+    target_domain_regex: Pattern = re.compile(r'(?:[^\*]+\.[^\.]+|\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f:.]*:[0-9a-f:.]*)')  # non-wildcard domain, or IPv4/IPv6
 
     # one line per account: <account jwk thumbprint>:<domain a>,<domain b>
     prevalidated_domains: Annotated[dict[str, frozenset[str]], NoDecode] = {}

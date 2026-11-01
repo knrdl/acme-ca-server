@@ -6,6 +6,8 @@
 docker rm -f -v test_db
 docker rm -f -v test_server
 docker rm -f -v test_mail
+docker rm -f -v test_ip_listener
+docker volume rm -f test_ip_www
 
 docker network rm -f test_net
 
@@ -54,6 +56,25 @@ curl --fail --silent localhost:8080 > /dev/null
 curl --fail --silent localhost:8080/certificates > /dev/null
 curl --fail --silent localhost:8080/endpoints > /dev/null
 ! curl --fail --silent localhost:8080/ca/123456/crl > /dev/null  # request to unknown CA should not result in a 200 OK response
+
+# IP identifiers
+
+# The IP address is not hardcoded: Docker assigns it to the challenge container and it is read at runtime.
+docker rm -f test_ip_listener >/dev/null 2>&1 || true
+docker volume rm -f test_ip_www >/dev/null 2>&1 || true
+docker volume create test_ip_www >/dev/null
+docker run -dit --name test_ip_listener --net test_net --user 0 -v test_ip_www:/www acmeserver \
+     python -m http.server 80 --directory /www
+sleep 2
+IP_ADDR=$(docker inspect -f '{{ (index .NetworkSettings.Networks "test_net").IPAddress }}' test_ip_listener)
+test -n "$IP_ADDR"
+
+echo "IP 1 (issue certificate for $IP_ADDR)"
+docker run --rm --user 0 --net test_net -v "$PWD:/e2e:ro" -v test_ip_www:/www acmeserver \
+     python /e2e/ipclient.py "$IP_ADDR" /www
+
+docker rm -f test_ip_listener
+docker volume rm test_ip_www
 
 # certbot
 
