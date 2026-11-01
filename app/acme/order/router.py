@@ -30,7 +30,11 @@ class NewOrderDomain(BaseModel):
         if len(self.value) > _MAX_IDENTIFIER_LENGTH:
             # enforced here (not via pydantic's max_length) so the client gets a clean ACME error
             # instead of a ValidationError escaping the ACME error handling
-            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'identifier exceeds max length of {_MAX_IDENTIFIER_LENGTH}: {len(self.value)}')
+            raise ACMEException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                exctype='malformed',
+                detail=f'identifier exceeds max length of {_MAX_IDENTIFIER_LENGTH}: {len(self.value)}',
+            )
         if self.type == 'ip':
             # normalize to the canonical (compressed) representation
             try:
