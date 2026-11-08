@@ -12,6 +12,7 @@ from cryptography import x509
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
+from identifiers import is_ip, parse_ip
 
 from .model import SignedCertInfo
 
@@ -58,9 +59,13 @@ def load_ca_sync(*, cert_pem, key_pem_enc):
 def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, csr: x509.CertificateSigningRequest, subject_domain: str, san_domains: list[str]):
     ca_id = SerialNumberConverter.int2hex(ca_cert.serial_number)
 
+    # IP addresses are not valid for the common name: RFC 5280 requires them to be placed in the SAN only,
+    # so use an empty subject for IP-only certificates
+    subject_name = x509.Name([]) if is_ip(subject_domain) else x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, subject_domain)])
+
     cert_builder = x509.CertificateBuilder(
         issuer_name=ca_cert.subject,
-        subject_name=x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, subject_domain)]),
+        subject_name=subject_name,
         serial_number=x509.random_serial_number(),
         not_valid_before=datetime.now(timezone.utc),
         not_valid_after=datetime.now(timezone.utc) + settings.ca.cert_lifetime,
@@ -86,8 +91,10 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
             ),
             critical=False,
         )
+    # build the SAN extension, using an IP address general name for IPs and a DNS name for domain names
+    general_names = [x509.IPAddress(parse_ip(identifier)) if is_ip(identifier) else x509.DNSName(identifier) for identifier in san_domains]
     cert_builder = (
-        cert_builder.add_extension(x509.SubjectAlternativeName(general_names=[x509.DNSName(domain) for domain in san_domains]), critical=False)
+        cert_builder.add_extension(x509.SubjectAlternativeName(general_names=general_names), critical=False)
         .add_extension(
             x509.KeyUsage(
                 digital_signature=True,

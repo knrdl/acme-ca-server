@@ -7,18 +7,53 @@ import db
 from ca import service as ca_service
 from config import settings
 from fastapi import APIRouter, Depends, Response, status
+from identifiers import identifier_type, is_ip, parse_ip
 from jwcrypto.common import base64url_decode
 from logger import logger
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, ValidationError, model_validator
 
 from ..certificate.service import SerialNumberConverter, check_csr
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest
 
+# longest valid DNS name; also covers IPv6 literals (45 characters), bounds the regex input
+_MAX_IDENTIFIER_LENGTH = 253
+
 
 class NewOrderDomain(BaseModel):
-    type: Literal['dns']  # noqa: A003 (allow shadowing builtin "type")
-    value: Annotated[str, StringConstraints(to_lower=True, pattern=settings.acme.target_domain_regex_pattern)]
+    type: Literal['dns', 'ip']  # noqa: A003 (allow shadowing builtin "type")
+    value: Annotated[str, StringConstraints(to_lower=True)]
+
+    @model_validator(mode='after')
+    def check_identifier(self) -> 'NewOrderDomain':
+        if len(self.value) > _MAX_IDENTIFIER_LENGTH:
+            # enforced here (not via pydantic's max_length) so the client gets a clean ACME error
+            # instead of a ValidationError escaping the ACME error handling
+            raise ACMEException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                exctype='malformed',
+                detail=f'identifier exceeds max length of {_MAX_IDENTIFIER_LENGTH}: {len(self.value)}',
+            )
+        if self.type == 'ip':
+            # normalize to the canonical (compressed) representation
+            try:
+                ip = parse_ip(self.value)
+            except ValidationError:
+                # raise an ACMEException (instead of a pydantic error) so the client receives a proper ACME error response
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'invalid ip address: {self.value!r}') from None
+            self.value = str(ip)
+            # ACME_TARGET_IP_SUBNETS gates ip identifiers; it is empty by default, so no ip certificates without opt-in
+            if not settings.acme.is_ip_allowed(ip):
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='rejectedIdentifier', detail=f'ip address not within acme_target_ip_subnets: {self.value!r}')
+        else:
+            # a dns identifier must be a domain name: an IP literal belongs to type "ip",
+            # and a colon is never valid in a DNS name
+            if is_ip(self.value) or ':' in self.value:
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'invalid dns identifier: {self.value!r}')
+            # ACME_TARGET_DOMAIN_REGEX gates dns identifiers
+            if not settings.acme.target_domain_regex_pattern.fullmatch(self.value):
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'domain does not match acme_target_domain_regex: {self.value!r}')
+        return self
 
 
 class NewOrderPayload(BaseModel):
@@ -46,7 +81,7 @@ def order_response(
     return {
         'status': status,
         'expires': expires_at,
-        'identifiers': [{'type': 'dns', 'value': domain} for domain in domains],
+        'identifiers': [{'type': identifier_type(domain), 'value': domain} for domain in domains],
         'authorizations': [f'{settings.external_url}acme/authorizations/{authz_id}' for authz_id in authz_ids],
         'finalize': f'{settings.external_url}acme/orders/{order_id}/finalize',
         'error': error.value if error else None,
