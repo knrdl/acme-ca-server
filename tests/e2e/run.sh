@@ -17,6 +17,9 @@ set -e
 docker build --pull -t acmeserver ../..
 
 docker network create test_net
+# read the subnet Docker assigned to the test network at runtime (used to allow IP certificates for the test container)
+TEST_NET_SUBNET=$(docker network inspect test_net -f '{{ (index .IPAM.Config 0).Subnet }}')
+test -n "$TEST_NET_SUBNET"
 
 docker run -dit -e POSTGRES_PASSWORD=secret --name test_db --net test_net docker.io/postgres:16-alpine
 
@@ -35,6 +38,7 @@ function start_server() {
         -e MAIL_ENABLED=true -e MAIL_HOST=test_mail -e MAIL_ENCRYPTION=plain -e MAIL_SENDER=acme@example.org \
         -e web_enable_public_log=true \
         -e EXTERNAL_URL="http://acme.example.org:8080" \
+        -e ACME_TARGET_IP_SUBNETS="$TEST_NET_SUBNET" \
         -e CA_ENCRYPTION_KEY="DaxNj1bTiCsk6aQiY43hz2jDqBZAU5kta1uNBzp_yqo=" \
         "$@" \
         acmeserver

@@ -1,17 +1,16 @@
 import asyncio
 import secrets
 from datetime import datetime
-from ipaddress import ip_address
 from typing import Annotated, Literal
 
 import db
 from ca import service as ca_service
 from config import settings
 from fastapi import APIRouter, Depends, Response, status
-from identifiers import identifier_type, is_ip
+from identifiers import identifier_type, is_ip, parse_ip
 from jwcrypto.common import base64url_decode
 from logger import logger
-from pydantic import BaseModel, Field, StringConstraints, model_validator
+from pydantic import BaseModel, Field, StringConstraints, ValidationError, model_validator
 
 from ..certificate.service import SerialNumberConverter, check_csr
 from ..exceptions import ACMEException
@@ -38,18 +37,22 @@ class NewOrderDomain(BaseModel):
         if self.type == 'ip':
             # normalize to the canonical (compressed) representation
             try:
-                self.value = ip_address(self.value).compressed
-            except ValueError:
-                # raise an ACMEException (instead of a ValueError) so the client receives a proper ACME error response
+                ip = parse_ip(self.value)
+            except ValidationError:
+                # raise an ACMEException (instead of a pydantic error) so the client receives a proper ACME error response
                 raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'invalid ip address: {self.value!r}') from None
-        elif is_ip(self.value) or ':' in self.value:
+            self.value = str(ip)
+            # ACME_TARGET_IP_SUBNETS gates ip identifiers; it is empty by default, so no ip certificates without opt-in
+            if not settings.acme.is_ip_allowed(ip):
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='rejectedIdentifier', detail=f'ip address not within acme_target_ip_subnets: {self.value!r}')
+        else:
             # a dns identifier must be a domain name: an IP literal belongs to type "ip",
             # and a colon is never valid in a DNS name
-            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'invalid dns identifier: {self.value!r}')
-        # ACME_TARGET_DOMAIN_REGEX gates every identifier (dns and ip), so operators can
-        # restrict what may be requested with a single regex (e.g. DNS-only via a domain-only pattern)
-        if not settings.acme.target_domain_regex_pattern.fullmatch(self.value):
-            raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'identifier does not match acme_target_domain_regex: {self.value!r}')
+            if is_ip(self.value) or ':' in self.value:
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'invalid dns identifier: {self.value!r}')
+            # ACME_TARGET_DOMAIN_REGEX gates dns identifiers
+            if not settings.acme.target_domain_regex_pattern.fullmatch(self.value):
+                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'domain does not match acme_target_domain_regex: {self.value!r}')
         return self
 
 

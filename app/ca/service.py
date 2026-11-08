@@ -4,7 +4,6 @@
 
 import asyncio
 from datetime import datetime, timezone
-from ipaddress import ip_address
 
 import db
 from acme.certificate.service import SerialNumberConverter
@@ -13,7 +12,7 @@ from cryptography import x509
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
-from identifiers import is_ip
+from identifiers import is_ip, parse_ip
 
 from .model import SignedCertInfo
 
@@ -93,7 +92,7 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
             critical=False,
         )
     # build the SAN extension, using an IP address general name for IPs and a DNS name for domain names
-    general_names = [x509.IPAddress(ip_address(identifier)) if is_ip(identifier) else x509.DNSName(identifier) for identifier in san_domains]
+    general_names = [x509.IPAddress(parse_ip(identifier)) if is_ip(identifier) else x509.DNSName(identifier) for identifier in san_domains]
     cert_builder = (
         cert_builder.add_extension(x509.SubjectAlternativeName(general_names=general_names), critical=False)
         .add_extension(

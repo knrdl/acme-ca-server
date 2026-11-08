@@ -99,7 +99,7 @@ def _solve_challenge(signed_request, authz_response):
     return challenge_token, challenge_url, mock_challenge_file_contents
 
 
-def test_should_issue_certificate_for_ip_address(signed_request, directory):
+def test_should_issue_certificate_for_ip_address(signed_request, directory, allowed_ip_subnets):
     response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': [_mail_address]})
     account_id = response.headers['Location']
 
@@ -137,7 +137,7 @@ def test_should_issue_certificate_for_ip_address(signed_request, directory):
     assert signed_cert.public_key() == csr.public_key()
 
 
-def test_should_issue_certificate_for_ipv6_address(signed_request, directory):
+def test_should_issue_certificate_for_ipv6_address(signed_request, directory, allowed_ip_subnets):
     response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': [_mail_address]})
     account_id = response.headers['Location']
 
@@ -172,7 +172,7 @@ def test_should_issue_certificate_for_ipv6_address(signed_request, directory):
     assert signed_cert.public_key() == csr.public_key()
 
 
-def test_should_issue_certificate_for_mixed_domain_and_ip(signed_request, directory):
+def test_should_issue_certificate_for_mixed_domain_and_ip(signed_request, directory, allowed_ip_subnets):
     response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': [_mail_address]})
     account_id = response.headers['Location']
 

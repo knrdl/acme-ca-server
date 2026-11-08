@@ -1,12 +1,14 @@
 import re
 import sys
 from datetime import timedelta
+from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_network
 from pathlib import Path
 from re import Pattern
 from typing import Annotated, Any, Literal
 
+from identifiers import parse_ip
 from logger import logger
-from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, field_validator, model_validator
+from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -83,8 +85,11 @@ class AcmeSettings(BaseSettings):
     terms_of_service_url: AnyHttpUrl | None = None
     mail_target_regex: Pattern = re.compile(r'[^@]+@[^@]+\.[^@]+')
     mail_required: bool = True
-    # gates all identifiers (dns and ip); the default also accepts valid IPv4/IPv6 addresses
-    target_domain_regex: Pattern = re.compile(r'(?:[^\*]+\.[^\.]+|\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f:.]*:[0-9a-f:.]*)')  # non-wildcard domain, or IPv4/IPv6
+    # gates dns identifiers only (ip identifiers are gated by target_ip_subnets)
+    target_domain_regex: Pattern = re.compile(r'[^\*]+\.[^\.]+')  # disallow wildcard
+
+    # only ip identifiers within these subnets are accepted; empty (default) disallows all ip certificates
+    target_ip_subnets: Annotated[frozenset[IPv4Network | IPv6Network], NoDecode] = frozenset()
 
     # one line per account: <account jwk thumbprint>:<domain a>,<domain b>
     prevalidated_domains: Annotated[dict[str, frozenset[str]], NoDecode] = {}
@@ -101,12 +106,31 @@ class AcmeSettings(BaseSettings):
         pattern = f'^{self.target_domain_regex.pattern.strip().removeprefix("^").removesuffix("$")}$'
         return re.compile(pattern)
 
+    def is_ip_allowed(self, ip: IPv4Address | IPv6Address) -> bool:
+        return any(ip in subnet for subnet in self.target_ip_subnets)
+
     @field_validator('mail_target_regex', 'target_domain_regex')
     @classmethod
     def pattern_must_be_lowercase(cls, value: Pattern) -> Pattern:
         if value.pattern != value.pattern.lower():
             logger.warning('Regex pattern should be lowercase only, got %r', value.pattern)
         return value
+
+    @field_validator('target_ip_subnets', mode='before')
+    @classmethod
+    def parse_target_ip_subnets(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        subnets = []
+        for entry in value.split(','):
+            entry = entry.strip()
+            if not entry:
+                continue
+            try:
+                subnets.append(ip_network(entry, strict=False))
+            except ValueError:
+                raise ValueError(f'Invalid entry "{entry}" in acme_target_ip_subnets, expected comma separated subnets, e.g. 192.168.1.0/24, fd00:db8::/64') from None
+        return subnets
 
     @field_validator('prevalidated_domains', mode='before')
     @classmethod
@@ -129,8 +153,16 @@ class AcmeSettings(BaseSettings):
     def check_prevalidated_domains(self) -> 'AcmeSettings':
         for account, domains in self.prevalidated_domains.items():
             for domain in domains:
-                if not self.target_domain_regex_pattern.fullmatch(domain):
-                    raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains does not match acme_target_domain_regex')
+                try:
+                    ip = parse_ip(domain)
+                except ValidationError:
+                    # a domain must match the domain regex
+                    if not self.target_domain_regex_pattern.fullmatch(domain):
+                        raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains does not match acme_target_domain_regex') from None
+                else:
+                    # an ip address must be within the allowed subnets
+                    if not self.is_ip_allowed(ip):
+                        raise ValueError(f'IP address "{domain}" of account "{account}" in acme_prevalidated_domains is not within acme_target_ip_subnets') from None
         return self
 
 

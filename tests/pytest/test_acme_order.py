@@ -143,7 +143,7 @@ def test_should_lowercase_domains(signed_request, directory):
     assert sorted(authz_values) == ['host1.example.org', 'host2.example.org']
 
 
-def test_should_accept_ip_identifiers(signed_request, directory):
+def test_should_accept_ip_identifiers(signed_request, directory, allowed_ip_subnets):
     response = signed_request(directory['newAccount'], signed_request.nonce, {})
     account_id = response.headers['Location']
 
@@ -214,54 +214,44 @@ def test_should_reject_identifiers_exceeding_max_length(signed_request, director
     assert 'exceeds max length' in response.json()['detail']
 
 
-def test_should_reject_ip_identifiers_when_target_domain_regex_is_dns_only(signed_request, directory):
+def test_should_reject_ip_identifiers_by_default(signed_request, directory):
+    # acme_target_ip_subnets defaults to empty, so no ip certificates are allowed without opt-in
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'ip', 'value': '192.0.2.1'}]}, account_id)
+    assert response.status_code == 400
+    assert response.headers['Content-Type'] == 'application/problem+json'
+    assert response.json()['type'] == 'urn:ietf:params:acme:error:rejectedIdentifier'
+    assert 'acme_target_ip_subnets' in response.json()['detail']
+
+
+def test_should_reject_ip_identifiers_outside_target_ip_subnets(signed_request, directory, monkeypatch):
+    from ipaddress import ip_network
+
+    from config import settings
+
+    monkeypatch.setattr(settings.acme, 'target_ip_subnets', frozenset({ip_network('10.0.0.0/8')}))
+
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'ip', 'value': '192.0.2.1'}]}, account_id)
+    assert response.status_code == 400
+    assert response.json()['type'] == 'urn:ietf:params:acme:error:rejectedIdentifier'
+    assert 'acme_target_ip_subnets' in response.json()['detail']
+
+
+def test_should_not_gate_ip_identifiers_by_target_domain_regex(signed_request, directory, allowed_ip_subnets, monkeypatch):
     import re
 
     from config import settings
 
-    response = signed_request(directory['newAccount'], signed_request.nonce, {})
-    account_id = response.headers['Location']
-    original = settings.acme.target_domain_regex
-    # a DNS-only pattern (letters/dashes, no digits) cannot match an IP address
-    settings.acme.target_domain_regex = re.compile(r'[a-z-]+(\.[a-z-]+)+')
-    try:
-        response = signed_request(
-            directory['newOrder'],
-            response.headers['Replay-Nonce'],
-            {'identifiers': [{'type': 'ip', 'value': '192.0.2.1'}]},
-            account_id,
-        )
-        assert response.status_code != 201
-        assert response.headers['Content-Type'] == 'application/problem+json'
-        assert response.json()['type'] == 'urn:ietf:params:acme:error:malformed'
-
-        # a matching DNS domain is still accepted
-        response = signed_request(
-            directory['newOrder'],
-            response.headers['Replay-Nonce'],
-            {'identifiers': [{'type': 'dns', 'value': 'mail.example.org'}]},
-            account_id,
-        )
-        assert response.status_code == 201, response.json()
-    finally:
-        settings.acme.target_domain_regex = original
-
-
-def test_should_accept_ip_identifiers_under_default_target_domain_regex(signed_request, directory):
-    from config import settings
-
-    # the default regex gates identifiers but also matches valid IPv4/IPv6 addresses
-    assert settings.acme.target_domain_regex_pattern.fullmatch('192.0.2.1')
-    assert settings.acme.target_domain_regex_pattern.fullmatch('2001:db8::1')
+    # the domain regex only applies to dns identifiers, so a domain-only pattern does not block ip orders
+    monkeypatch.setattr(settings.acme, 'target_domain_regex', re.compile(r'[a-z-]+(\.[a-z-]+)+'))
 
     response = signed_request(directory['newAccount'], signed_request.nonce, {})
     account_id = response.headers['Location']
 
-    response = signed_request(
-        directory['newOrder'],
-        response.headers['Replay-Nonce'],
-        {'identifiers': [{'type': 'ip', 'value': '2001:db8::1'}]},
-        account_id,
-    )
+    response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'ip', 'value': '192.0.2.1'}]}, account_id)
     assert response.status_code == 201, response.json()
-    assert {(i['type'], i['value']) for i in response.json()['identifiers']} == {('ip', '2001:db8::1')}, response.json()

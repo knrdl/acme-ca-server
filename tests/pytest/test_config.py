@@ -78,16 +78,51 @@ def test_should_reject_prevalidated_domains_not_matching_target_domain_regex(tes
     with pytest.raises(ValidationError, match='does not match acme_target_domain_regex'):
         AcmeSettings(target_domain_regex=r'[^\*]+\.example\.org', prevalidated_domains='acc1:host1.example.net')
 
-    # an IP is only prevalidatable when it matches the regex, so a DNS-only pattern rejects it
-    with pytest.raises(ValidationError, match='does not match acme_target_domain_regex'):
-        AcmeSettings(target_domain_regex=r'[a-z-]+(\.[a-z-]+)+', prevalidated_domains='acc1:192.0.2.1')
+
+def test_should_default_to_no_ip_subnets(testclient):
+    from config import AcmeSettings
+
+    assert AcmeSettings().target_ip_subnets == frozenset()
+
+
+def test_should_parse_target_ip_subnets(testclient):
+    from ipaddress import ip_address
+
+    from config import AcmeSettings
+
+    settings = AcmeSettings(target_ip_subnets='192.168.1.0/24, fd00:db8::/64')
+
+    assert {str(subnet) for subnet in settings.target_ip_subnets} == {'192.168.1.0/24', 'fd00:db8::/64'}
+    assert settings.is_ip_allowed(ip_address('192.168.1.5'))
+    assert settings.is_ip_allowed(ip_address('fd00:db8::5'))
+    assert not settings.is_ip_allowed(ip_address('10.0.0.1'))
+
+
+@pytest.mark.parametrize('value', ['not-a-subnet', '192.168.1.0/33', 'fd00:db8::/129'])
+def test_should_reject_invalid_target_ip_subnets(testclient, value):
+    from config import AcmeSettings
+
+    with pytest.raises(ValidationError, match='acme_target_ip_subnets'):
+        AcmeSettings(target_ip_subnets=value)
+
+
+def test_should_reject_prevalidated_ip_not_within_target_ip_subnets(testclient):
+    from config import AcmeSettings
+
+    # ip subnets default to empty, so a prevalidated IP is rejected
+    with pytest.raises(ValidationError, match='not within acme_target_ip_subnets'):
+        AcmeSettings(prevalidated_domains='acc1:192.0.2.1')
+
+    # an IP outside the configured subnets is rejected as well
+    with pytest.raises(ValidationError, match='not within acme_target_ip_subnets'):
+        AcmeSettings(target_ip_subnets='10.0.0.0/8', prevalidated_domains='acc1:192.0.2.1')
 
 
 def test_should_accept_prevalidated_ip_identifiers(testclient):
     from config import AcmeSettings
 
-    # the default regex matches valid IPv4/IPv6 addresses, so they may be prevalidated
-    settings = AcmeSettings(prevalidated_domains='acc1:192.0.2.1,2001:db8::1')
+    # ip addresses within the allowed subnets may be prevalidated
+    settings = AcmeSettings(target_ip_subnets='192.0.2.0/24, 2001:db8::/32', prevalidated_domains='acc1:192.0.2.1,2001:db8::1')
 
     assert settings.prevalidated_domains == {'acc1': frozenset({'192.0.2.1', '2001:db8::1'})}
 
