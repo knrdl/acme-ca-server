@@ -76,7 +76,7 @@
         {% for domain in domains %}
         <tr>
             <td class="{{'valid' if domain.is_valid else 'invalid' }}">&nbsp;</td>
-            <td><a href="https://{{domain.domain_name}}" target="_blank"
+            <td><a href="https://{{ '[' ~ domain.domain_name ~ ']' if ':' in domain.domain_name else domain.domain_name }}" target="_blank"
                     rel="noopener noreferrer">{{domain.domain_name}}</a></td>
             <td>{{domain.first_requested_at.strftime('%Y-%m-%d')}}</td>
             <td>{{domain.expires_at.strftime('%Y-%m-%d')}}</td>

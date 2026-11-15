@@ -76,6 +76,20 @@ def signed_request(testclient: TestClient, account_jwk: jwcrypto.jwk.JWK, direct
     return SignedRequest()
 
 
+@pytest.fixture
+def allowed_ip_subnets():
+    from ipaddress import ip_network
+
+    import config
+
+    original = config.settings.acme.target_ip_subnets
+    config.settings.acme.target_ip_subnets = frozenset({ip_network('192.0.2.0/24'), ip_network('2001:db8::/32')})
+    try:
+        yield
+    finally:
+        config.settings.acme.target_ip_subnets = original
+
+
 @pytest.fixture(scope='session')
 def db():
     import asyncpg

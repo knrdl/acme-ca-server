@@ -6,6 +6,8 @@
 docker rm -f -v test_db
 docker rm -f -v test_server
 docker rm -f -v test_mail
+docker rm -f -v test_ip_listener
+docker volume rm -f test_ip_www
 
 docker network rm -f test_net
 
@@ -15,6 +17,9 @@ set -e
 docker build --pull -t acmeserver ../..
 
 docker network create test_net
+# read the subnet Docker assigned to the test network at runtime (used to allow IP certificates for the test container)
+TEST_NET_SUBNET=$(docker network inspect test_net -f '{{ (index .IPAM.Config 0).Subnet }}')
+test -n "$TEST_NET_SUBNET"
 
 docker run -dit -e POSTGRES_PASSWORD=secret --name test_db --net test_net docker.io/postgres:16-alpine
 
@@ -33,6 +38,7 @@ function start_server() {
         -e MAIL_ENABLED=true -e MAIL_HOST=test_mail -e MAIL_ENCRYPTION=plain -e MAIL_SENDER=acme@example.org \
         -e web_enable_public_log=true \
         -e EXTERNAL_URL="http://acme.example.org:8080" \
+        -e ACME_TARGET_IP_SUBNETS="$TEST_NET_SUBNET" \
         -e CA_ENCRYPTION_KEY="DaxNj1bTiCsk6aQiY43hz2jDqBZAU5kta1uNBzp_yqo=" \
         "$@" \
         acmeserver
@@ -54,6 +60,25 @@ curl --fail --silent localhost:8080 > /dev/null
 curl --fail --silent localhost:8080/certificates > /dev/null
 curl --fail --silent localhost:8080/endpoints > /dev/null
 ! curl --fail --silent localhost:8080/ca/123456/crl > /dev/null  # request to unknown CA should not result in a 200 OK response
+
+# IP identifiers
+
+# The IP address is not hardcoded: Docker assigns it to the challenge container and it is read at runtime.
+docker rm -f test_ip_listener >/dev/null 2>&1 || true
+docker volume rm -f test_ip_www >/dev/null 2>&1 || true
+docker volume create test_ip_www >/dev/null
+docker run -dit --name test_ip_listener --net test_net --user 0 -v test_ip_www:/www acmeserver \
+     python -m http.server 80 --directory /www
+sleep 2
+IP_ADDR=$(docker inspect -f '{{ (index .NetworkSettings.Networks "test_net").IPAddress }}' test_ip_listener)
+test -n "$IP_ADDR"
+
+echo "IP 1 (issue certificate for $IP_ADDR)"
+docker run --rm --user 0 --net test_net -v "$PWD:/e2e:ro" -v test_ip_www:/www acmeserver \
+     python /e2e/ipclient.py "$IP_ADDR" /www
+
+docker rm -f test_ip_listener
+docker volume rm test_ip_www
 
 # certbot
 

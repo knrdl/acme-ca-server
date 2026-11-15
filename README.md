@@ -115,6 +115,7 @@ For instance, `DB_DSN` can be provided either as an env var or as a file at `/ru
 | ACME_MAIL_REQUIRED        | `True`       | whether the user has to provide a mail address to obtain certificates via the ACME client (recommended)        |
 | ACME_MAIL_TARGET_REGEX        | any mail address       | restrict the format of user-provided mail addresses. E.g. `[^@]+@mydomain\.org` only allows mail addresses from mydomain.org             |
 | ACME_TARGET_DOMAIN_REGEX        | any non-wildcard domain name       | restrict the domain names for which certificates can be requested via ACME. E.g. `[^\*]+\.mydomain\.org` only allows domain names from mydomain.org             |
+| ACME_TARGET_IP_SUBNETS        | none (no IP certificates)       | subnet(s) for which certificates for ip addresses can be requested via ACME, comma separated, e.g. `192.168.1.0/24, fd00:db8::/64`. Empty by default, which disallows all ip certificates             |
 | ACME_PREVALIDATED_DOMAINS        | none       | domains which are accepted without a Challenge for specific accounts. Format: one line per account, `<account>:<domain a>,<domain b>`. Further information: https://github.com/knrdl/acme-ca-server/pull/333 |
 | CA_ENABLED        | `True`       | whether the internal CA is enabled, set this to false when providing a custom CA implementation  |
 | CA_ENCRYPTION_KEY        | will be generated if not provided       | the key to protect the CA private keys at rest (encrypted in the database)  |
