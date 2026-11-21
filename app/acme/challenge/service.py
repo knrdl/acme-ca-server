@@ -68,14 +68,14 @@ async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypt
     for attempt in range(3):  # 3x retry
         err: Literal[False] | ACMEException
         try:
+
             async def check_redirect_hook(response: httpx2.Response) -> None:
                 check_redirect(domain=domain, response=response)
 
             async with httpx2.AsyncClient(
                 timeout=httpx2.Timeout(5, connect=3, read=10),
                 headers={'User-Agent': USER_AGENT},
-                # only http 1.0/1.1 is required, not https
-                verify=False,  # noqa: S501 (https is intentionally disabled)
+                verify=False,  # noqa: S501 (https cert check is intentionally disabled)
                 http1=True,
                 http2=False,
                 follow_redirects=settings.acme.validation_redirects != 'disallow',
