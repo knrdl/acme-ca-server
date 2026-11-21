@@ -4,7 +4,7 @@ from .conftest import TestClient
 import pytest
 
 
-def test_challenge_validation_deadline(testclient: TestClient, account_jwk):
+def test_challenge_validation_deadline(testclient: TestClient, monkeypatch, account_jwk):
     from acme.challenge import service
     from acme.exceptions import ACMEException
 
