@@ -12,23 +12,26 @@ from cryptography import x509
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
-from identifiers import is_ip, parse_ip
+from identifiers import parse_ip
 
 from .model import SignedCertInfo
 
+# an identifier is a (type, value) pair where type is 'dns' or 'ip'
+Identifier = tuple[str, str]
 
-async def sign_csr(csr: x509.CertificateSigningRequest, subject_domain: str, san_domains: list[str]) -> SignedCertInfo:
+
+async def sign_csr(csr: x509.CertificateSigningRequest, subject: Identifier, san_identifiers: list[Identifier]) -> SignedCertInfo:
     """
     csr: the parsed csr object
-    subject_domain: the main requested domain name
-    san_domains: the alternative (additional) requested domain names
+    subject: the main requested identifier as a (type, value) pair
+    san_identifiers: the alternative (additional) requested identifiers as (type, value) pairs
     """
     if not settings.ca.enabled:
         raise RuntimeError('internal ca is not enabled (env var CA_ENABLED)! Please provide a custom ca implementation')
 
     ca_cert, ca_key = await load_active_ca()
 
-    cert, cert_chain_pem = await asyncio.to_thread(generate_cert_sync, ca_key=ca_key, ca_cert=ca_cert, csr=csr, subject_domain=subject_domain, san_domains=san_domains)
+    cert, cert_chain_pem = await asyncio.to_thread(generate_cert_sync, ca_key=ca_key, ca_cert=ca_cert, csr=csr, subject=subject, san_identifiers=san_identifiers)
 
     return SignedCertInfo(cert=cert, cert_chain_pem=cert_chain_pem)
 
@@ -56,12 +59,13 @@ def load_ca_sync(*, cert_pem, key_pem_enc):
     return ca_cert, ca_key
 
 
-def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, csr: x509.CertificateSigningRequest, subject_domain: str, san_domains: list[str]):
+def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, csr: x509.CertificateSigningRequest, subject: Identifier, san_identifiers: list[Identifier]):  # pylint: disable=too-many-locals
     ca_id = SerialNumberConverter.int2hex(ca_cert.serial_number)
+    subject_type, subject_value = subject
 
     # IP addresses are not valid for the common name: RFC 5280 requires them to be placed in the SAN only,
     # so use an empty subject for IP-only certificates
-    subject_name = x509.Name([]) if is_ip(subject_domain) else x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, subject_domain)])
+    subject_name = x509.Name([]) if subject_type == 'ip' else x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, subject_value)])
 
     cert_builder = x509.CertificateBuilder(
         issuer_name=ca_cert.subject,
@@ -91,10 +95,13 @@ def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, cs
             ),
             critical=False,
         )
-    # build the SAN extension, using an IP address general name for IPs and a DNS name for domain names
-    general_names = [x509.IPAddress(parse_ip(identifier)) if is_ip(identifier) else x509.DNSName(identifier) for identifier in san_domains]
+    # build the SAN extension, using an IP address general name for ip identifiers and a DNS name for dns identifiers
+    general_names = [x509.IPAddress(parse_ip(value)) if identifier_type == 'ip' else x509.DNSName(value) for identifier_type, value in san_identifiers]
+    # RFC 5280 §4.2.1.6: when the subject is an empty sequence (IP-only certificates) the
+    # subjectAltName extension must be marked critical; with a non-empty subject it should be non-critical
+    san_critical = subject_type == 'ip'
     cert_builder = (
-        cert_builder.add_extension(x509.SubjectAlternativeName(general_names=general_names), critical=False)
+        cert_builder.add_extension(x509.SubjectAlternativeName(general_names=general_names), critical=san_critical)
         .add_extension(
             x509.KeyUsage(
                 digital_signature=True,

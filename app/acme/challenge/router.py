@@ -18,7 +18,8 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
     async with db.transaction() as sql:
         record = await sql.record(
             """
-            select chal.authz_id, chal.error, chal.status, authz.status, authz.domain, chal.validated_at, chal.token, ord.id, ord.status from challenges chal
+            select chal.authz_id, chal.error, chal.status, authz.status, authz.identifier_value, authz.identifier_type,
+                chal.validated_at, chal.token, ord.id, ord.status from challenges chal
             join authorizations authz on authz.id = chal.authz_id
             join orders ord on authz.order_id = ord.id
             where chal.id = $1 and ord.account_id = $2 and ord.expires_at > now()
@@ -33,7 +34,7 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
                 detail='specified challenge not available for current account',
                 new_nonce=data.new_nonce,
             )
-        authz_id, chal_err, chal_status, authz_status, domain, chal_validated_at, token, order_id, order_status = record
+        authz_id, chal_err, chal_status, authz_status, identifier_value, identifier_type, chal_validated_at, token, order_id, order_status = record
         if order_status == 'invalid':
             await sql.exec("""update authorizations set status = 'invalid' where id = $1""", authz_id)
             await sql.value(
@@ -68,13 +69,13 @@ async def verify_challenge(response: Response, chal_id: str, data: Annotated[Req
     if must_solve_challenge:
         err: Literal[False] | ACMEException
         try:
-            await service.check_challenge_is_fulfilled(domain=domain, token=token, jwk=data.key, new_nonce=data.new_nonce)
+            await service.check_challenge_is_fulfilled(identifier_type=identifier_type, domain=identifier_value, token=token, jwk=data.key, new_nonce=data.new_nonce)
             err = False
         except ACMEException as e:
             err = e
         except Exception as e:  # noqa: BLE001
             err = ACMEException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, exctype='serverInternal', detail=str(e), new_nonce=data.new_nonce)
-            logger.warning('challenge failed for %s (account: %s)', domain, data.account_id, exc_info=True)
+            logger.warning('challenge failed for %s (account: %s)', identifier_value, data.account_id, exc_info=True)
         if err is False:
             async with db.transaction() as sql:
                 chal_status, chal_validated_at = await sql.record(

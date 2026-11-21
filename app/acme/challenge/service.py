@@ -4,17 +4,16 @@ from typing import Literal
 import httpx2
 import jwcrypto.jwk
 from fastapi import status
-from identifiers import is_ip
 
 from ..exceptions import ACMEException
 
 
-def _challenge_host(identifier: str) -> str:
+def _challenge_host(identifier_type: str, identifier: str) -> str:
     """IPv6 literals must be enclosed in square brackets when used as a hostname."""
-    return f'[{identifier}]' if is_ip(identifier) and ':' in identifier else identifier
+    return f'[{identifier}]' if identifier_type == 'ip' and ':' in identifier else identifier
 
 
-async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str | None = None):
+async def check_challenge_is_fulfilled(*, identifier_type: str, domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str | None = None):
     for _ in range(3):  # 3x retry
         err: Literal[False] | ACMEException
         try:
@@ -28,7 +27,7 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
                 follow_redirects=False,
                 trust_env=False,  # do not load proxy information from env vars
             ) as client:
-                res = await client.get(f'http://{_challenge_host(domain)}:80/.well-known/acme-challenge/{token}')
+                res = await client.get(f'http://{_challenge_host(identifier_type, domain)}:80/.well-known/acme-challenge/{token}')
                 if res.status_code == 200 and res.text.rstrip() == f'{token}.{jwk.thumbprint()}':
                     err = False
                 else:

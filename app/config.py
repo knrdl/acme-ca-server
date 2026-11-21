@@ -94,6 +94,9 @@ class AcmeSettings(BaseSettings):
     # one line per account: <account jwk thumbprint>:<domain a>,<domain b>
     prevalidated_domains: Annotated[dict[str, frozenset[str]], NoDecode] = {}
 
+    # one line per account: <account jwk thumbprint>:<subnet a>,<subnet b>
+    prevalidated_ip_subnets: Annotated[dict[str, frozenset[IPv4Network | IPv6Network]], NoDecode] = {}
+
     model_config = SettingsConfigDict(env_prefix='acme_', secrets_dir='/run/secrets')
 
     @property
@@ -108,6 +111,9 @@ class AcmeSettings(BaseSettings):
 
     def is_ip_allowed(self, ip: IPv4Address | IPv6Address) -> bool:
         return any(ip in subnet for subnet in self.target_ip_subnets)
+
+    def is_ip_prevalidated(self, account_thumbprint: str, ip: IPv4Address | IPv6Address) -> bool:
+        return any(ip in subnet for subnet in self.prevalidated_ip_subnets.get(account_thumbprint, frozenset()))
 
     @field_validator('mail_target_regex', 'target_domain_regex')
     @classmethod
@@ -149,20 +155,48 @@ class AcmeSettings(BaseSettings):
             result.setdefault(account, set()).update(domain_set)
         return result
 
+    @field_validator('prevalidated_ip_subnets', mode='before')
+    @classmethod
+    def parse_prevalidated_ip_subnets(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        result: dict[str, set[IPv4Network | IPv6Network]] = {}
+        for entry in value.splitlines():
+            if not entry.strip():
+                continue
+            account, sep, subnets = entry.partition(':')
+            account = account.strip()
+            subnet_set: set[IPv4Network | IPv6Network] = set()
+            for subnet in subnets.split(','):
+                subnet = subnet.strip()
+                if not subnet:
+                    continue
+                try:
+                    subnet_set.add(ip_network(subnet, strict=False))
+                except ValueError:
+                    raise ValueError(
+                        f'Invalid entry "{entry.strip()}" in acme_prevalidated_ip_subnets, expected format: one line per account, <account>:<subnet a>,<subnet b>'
+                    ) from None
+            if not sep or not account or not subnet_set:
+                raise ValueError(f'Invalid entry "{entry.strip()}" in acme_prevalidated_ip_subnets, expected format: one line per account, <account>:<subnet a>,<subnet b>')
+            result.setdefault(account, set()).update(subnet_set)
+        return result
+
     @model_validator(mode='after')
     def check_prevalidated_domains(self) -> 'AcmeSettings':
         for account, domains in self.prevalidated_domains.items():
             for domain in domains:
                 try:
-                    ip = parse_ip(domain)
+                    parse_ip(domain)
                 except ValidationError:
                     # a domain must match the domain regex
                     if not self.target_domain_regex_pattern.fullmatch(domain):
                         raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains does not match acme_target_domain_regex') from None
                 else:
-                    # an ip address must be within the allowed subnets
-                    if not self.is_ip_allowed(ip):
-                        raise ValueError(f'IP address "{domain}" of account "{account}" in acme_prevalidated_domains is not within acme_target_ip_subnets') from None
+                    # only domains belong in prevalidated_domains, IP addresses go into prevalidated_ip_subnets
+                    raise ValueError(
+                        f'IP address "{domain}" of account "{account}" is not allowed in acme_prevalidated_domains; specify IP addresses in acme_prevalidated_ip_subnets instead'
+                    ) from None
         return self
 
 

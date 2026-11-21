@@ -7,7 +7,7 @@ import db
 from ca import service as ca_service
 from config import settings
 from fastapi import APIRouter, Depends, Response, status
-from identifiers import identifier_type, is_ip, parse_ip
+from identifiers import parse_ip
 from jwcrypto.common import base64url_decode
 from logger import logger
 from pydantic import BaseModel, Field, StringConstraints, ValidationError, model_validator
@@ -46,11 +46,8 @@ class NewOrderDomain(BaseModel):
             if not settings.acme.is_ip_allowed(ip):
                 raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='rejectedIdentifier', detail=f'ip address not within acme_target_ip_subnets: {self.value!r}')
         else:
-            # a dns identifier must be a domain name: an IP literal belongs to type "ip",
-            # and a colon is never valid in a DNS name
-            if is_ip(self.value) or ':' in self.value:
-                raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'invalid dns identifier: {self.value!r}')
-            # ACME_TARGET_DOMAIN_REGEX gates dns identifiers
+            # a dns identifier is a domain name; the declared type is kept as-is (an IP literal may also be a valid DNS name)
+            # it only has to match the domain regex
             if not settings.acme.target_domain_regex_pattern.fullmatch(self.value):
                 raise ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='malformed', detail=f'domain does not match acme_target_domain_regex: {self.value!r}')
         return self
@@ -70,7 +67,7 @@ def order_response(
     *,
     status: str,
     expires_at: datetime,
-    domains: list[str],
+    identifiers: list[tuple[str, str]],
     authz_ids: list[str],
     order_id: str,
     error: ACMEException | None = None,
@@ -81,7 +78,7 @@ def order_response(
     return {
         'status': status,
         'expires': expires_at,
-        'identifiers': [{'type': identifier_type(domain), 'value': domain} for domain in domains],
+        'identifiers': [{'type': identifier_type, 'value': value} for identifier_type, value in identifiers],
         'authorizations': [f'{settings.external_url}acme/authorizations/{authz_id}' for authz_id in authz_ids],
         'finalize': f'{settings.external_url}acme/orders/{order_id}/finalize',
         'error': error.value if error else None,
@@ -103,7 +100,8 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
             new_nonce=data.new_nonce,
         )
 
-    domains: list[str] = list({identifier.value for identifier in data.payload.identifiers})  # deduplicate domains
+    domains: list[str] = list({identifier.value for identifier in data.payload.identifiers})  # deduplicate identifiers
+    identifier_types = {identifier.value: identifier.type for identifier in data.payload.identifiers}
 
     def generate_tokens_sync(domains):
         order_id = secrets.token_urlsafe(16)
@@ -117,7 +115,13 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
     # domains which are whitelisted for this account are validated without a challenge
     account_thumbprint = data.key.thumbprint()
     allowed_prevalid_domains = settings.acme.prevalidated_domains.get(account_thumbprint, frozenset())
-    prevalidated_domains = frozenset(domain for domain in domains if domain.lower() in allowed_prevalid_domains)
+
+    def is_prevalidated(identifier: str) -> bool:
+        if identifier_types.get(identifier) == 'ip':
+            return settings.acme.is_ip_prevalidated(account_thumbprint, parse_ip(identifier))
+        return identifier.lower() in allowed_prevalid_domains
+
+    prevalidated_domains = frozenset(domain for domain in domains if is_prevalidated(domain))
     initial_order_status = 'pending' if any(domain not in prevalidated_domains for domain in domains) else 'ready'
     logger.debug(
         'new order (account: %s, jwk thumbprint: %s, prevalidated domains: %s, initial order status: %s)',
@@ -135,8 +139,8 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
             initial_order_status,
         )
         await sql.execmany(
-            """insert into authorizations (id, order_id, domain, status) values ($1, $2, $3, $4)""",
-            *[(authz_ids[domain], order_id, domain, 'valid' if domain in prevalidated_domains else 'pending') for domain in domains],
+            """insert into authorizations (id, order_id, identifier_value, identifier_type, status) values ($1, $2, $3, $4, $5)""",
+            *[(authz_ids[domain], order_id, domain, identifier_types[domain], 'valid' if domain in prevalidated_domains else 'pending') for domain in domains],
         )
         await sql.execmany(
             """
@@ -164,7 +168,7 @@ async def submit_order(response: Response, data: Annotated[RequestData[NewOrderP
     return order_response(
         status=order_status,
         expires_at=expires_at,
-        domains=domains,
+        identifiers=[(identifier_types[domain], domain) for domain in domains],
         authz_ids=authz_ids.values(),
         order_id=order_id,
     )
@@ -181,7 +185,7 @@ async def view_order(response: Response, order_id: str, data: Annotated[RequestD
         if not record:
             raise ACMEException(status_code=status.HTTP_404_NOT_FOUND, exctype='malformed', detail='Unknown order for current account.', new_nonce=data.new_nonce)
         order_status, expires_at, err = record
-        authzs = [row async for row in sql("""select id, domain from authorizations where order_id = $1""", order_id)]
+        authzs = [row async for row in sql("""select id, identifier_value, identifier_type from authorizations where order_id = $1""", order_id)]
         cert_record = await sql.record("""select serial_number, not_valid_before, not_valid_after from certificates where order_id = $1""", order_id)
     if cert_record:
         cert_sn, not_valid_before, not_valid_after = cert_record
@@ -194,8 +198,8 @@ async def view_order(response: Response, order_id: str, data: Annotated[RequestD
     return order_response(
         status=order_status,
         expires_at=expires_at,
-        domains=[domain for _, domain in authzs],
-        authz_ids=[authz_id for authz_id, _ in authzs],
+        identifiers=[(identifier_type, value) for _, value, identifier_type in authzs],
+        authz_ids=[authz_id for authz_id, _, _ in authzs],
         order_id=order_id,
         not_valid_before=not_valid_before if cert_record else None,
         not_valid_after=not_valid_after if cert_record else None,
@@ -236,18 +240,24 @@ async def finalize_order(response: Response, order_id: str, data: Annotated[Requ
             await sql.exec("""update orders set status='processing' where id = $1 and status = 'ready'""", order_id)
 
     async with db.transaction(readonly=True) as sql:
-        records = [(authz_id, domain) async for authz_id, domain, *_ in sql("""select id, domain from authorizations where order_id = $1 and status = 'valid'""", order_id)]
-    domains = [domain for authz_id, domain in records]
-    authz_ids = [authz_id for authz_id, domain in records]
+        records = [
+            (authz_id, value, identifier_type)
+            async for authz_id, value, identifier_type in sql(
+                """select id, identifier_value, identifier_type from authorizations where order_id = $1 and status = 'valid'""", order_id
+            )
+        ]
+    domains = [value for authz_id, value, _ in records]
+    authz_ids = [authz_id for authz_id, _, _ in records]
+    identifier_types = [identifier_type for _, _, identifier_type in records]
 
     csr_bytes = base64url_decode(data.payload.csr)
 
-    csr, csr_pem, subject_domain, san_domains = await check_csr(csr_bytes, ordered_domains=domains, new_nonce=data.new_nonce)
+    csr, csr_pem, subject, san_identifiers = await check_csr(csr_bytes, ordered_domains=domains, new_nonce=data.new_nonce)
 
     err: None | ACMEException
 
     try:
-        signed_cert = await ca_service.sign_csr(csr, subject_domain, san_domains)
+        signed_cert = await ca_service.sign_csr(csr, subject, san_identifiers)
         err = None
     except ACMEException as e:
         err = e
@@ -289,7 +299,7 @@ async def finalize_order(response: Response, order_id: str, data: Annotated[Requ
     return order_response(
         status=order_status,
         expires_at=expires_at,
-        domains=domains,
+        identifiers=[(identifier_type, domain) for identifier_type, domain in zip(identifier_types, domains)],
         authz_ids=authz_ids,
         order_id=order_id,
         not_valid_before=not_valid_before,

@@ -117,6 +117,29 @@ def test_should_prevalidate_whitelisted_domains(signed_request, directory, caplo
         settings.acme.prevalidated_domains = {}
 
 
+def test_should_prevalidate_whitelisted_ip_subnets(signed_request, directory, allowed_ip_subnets):
+    from ipaddress import ip_network
+
+    from config import settings
+
+    response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': ['mailto:admin@example.org']})
+    account_id = response.headers['Location']
+    thumbprint = signed_request.account_jwk.thumbprint()
+    settings.acme.prevalidated_ip_subnets = {thumbprint: frozenset({ip_network('192.0.2.1/32')})}
+    try:
+        # the IP is within the configured prevalidated subnets, so it is issued without a challenge
+        response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'ip', 'value': '192.0.2.1'}]}, account_id)
+        assert response.json()['status'] == 'ready', response.json()
+
+        # an IP outside the prevalidated subnets still requires a challenge
+        response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'ip', 'value': '2001:db8::1'}]}, account_id)
+        assert response.json()['status'] == 'pending', response.json()
+        response = signed_request(response.json()['authorizations'][0], response.headers['Replay-Nonce'], '', account_id)
+        assert response.json()['identifier'] == {'type': 'ip', 'value': '2001:db8::1'}
+    finally:
+        settings.acme.prevalidated_ip_subnets = {}
+
+
 def test_should_lowercase_domains(signed_request, directory):
     response = signed_request(directory['newAccount'], signed_request.nonce, {})
     account_id = response.headers['Location']
@@ -185,22 +208,22 @@ def test_should_reject_non_dns_values_as_dns_identifiers(signed_request, directo
     response = signed_request(directory['newAccount'], signed_request.nonce, {})
     account_id = response.headers['Location']
 
+    # these are not valid domain names, so they are rejected by the domain regex
     response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'dns', 'value': value}]}, account_id)
     assert response.status_code == 400
     assert response.headers['Content-Type'] == 'application/problem+json'
     assert response.json()['type'] == 'urn:ietf:params:acme:error:malformed'
-    assert 'invalid dns identifier' in response.json()['detail']
+    assert 'does not match acme_target_domain_regex' in response.json()['detail']
 
 
-def test_should_reject_ip_identifiers_declared_as_dns(signed_request, directory):
+def test_should_keep_declared_type_for_ip_like_dns_identifier(signed_request, directory, allowed_ip_subnets):
     response = signed_request(directory['newAccount'], signed_request.nonce, {})
     account_id = response.headers['Location']
 
-    # an IP address must be requested with type "ip", not "dns"
+    # an IP literal can also be a valid DNS name; the explicitly declared type is kept (no inference)
     response = signed_request(directory['newOrder'], response.headers['Replay-Nonce'], {'identifiers': [{'type': 'dns', 'value': '192.0.2.1'}]}, account_id)
-    assert response.status_code == 400
-    assert response.json()['type'] == 'urn:ietf:params:acme:error:malformed'
-    assert 'invalid dns identifier' in response.json()['detail']
+    assert response.status_code == 201, response.json()
+    assert response.json()['identifiers'] == [{'type': 'dns', 'value': '192.0.2.1'}], response.json()
 
 
 def test_should_reject_identifiers_exceeding_max_length(signed_request, directory):

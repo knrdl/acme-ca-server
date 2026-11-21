@@ -89,6 +89,7 @@ def test_should_issue_certificate_for_mixed_case_domains(signed_request, directo
     response = signed_request(response.json()['certificate'], response.headers['Replay-Nonce'], {}, account_id)
     signed_cert = x509.load_pem_x509_certificate(response.content)
     assert signed_cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value == 'mixed.example.com'
+    assert not signed_cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME).critical  # RFC 5280 §4.2.1.6
 
 
 def _solve_challenge(signed_request, authz_response):
@@ -130,7 +131,9 @@ def test_should_issue_certificate_for_ip_address(signed_request, directory, allo
     response = signed_request(response.json()['certificate'], response.headers['Replay-Nonce'], {}, account_id)
     signed_cert = x509.load_pem_x509_certificate(response.content)
 
-    sans = signed_cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value
+    san_ext = signed_cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+    assert san_ext.critical  # RFC 5280 §4.2.1.6: empty subject requires a critical subjectAltName
+    sans = san_ext.value
     assert [str(ip) for ip in sans.get_values_for_type(x509.IPAddress)] == [ip]
     assert sans.get_values_for_type(x509.DNSName) == []
     assert len(signed_cert.subject) == 0  # no common name for an IP-only certificate
@@ -169,6 +172,7 @@ def test_should_issue_certificate_for_ipv6_address(signed_request, directory, al
     signed_cert = x509.load_pem_x509_certificate(response.content)
     sans = signed_cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value
     assert [str(ip) for ip in sans.get_values_for_type(x509.IPAddress)] == [ip]
+    assert signed_cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME).critical  # RFC 5280 §4.2.1.6
     assert signed_cert.public_key() == csr.public_key()
 
 
@@ -205,6 +209,7 @@ def test_should_issue_certificate_for_mixed_domain_and_ip(signed_request, direct
     signed_cert = x509.load_pem_x509_certificate(response.content)
     # the common name is the domain name, the SAN contains both the domain and the IP address
     assert signed_cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value == 'host1.example.org'
-    sans = signed_cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value
-    assert [str(name) for name in sans.get_values_for_type(x509.DNSName)] == ['host1.example.org']
-    assert [str(ip) for ip in sans.get_values_for_type(x509.IPAddress)] == ['192.0.2.1']
+    san_ext = signed_cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+    assert not san_ext.critical  # RFC 5280 §4.2.1.6: non-empty subject -> non-critical
+    assert [str(name) for name in san_ext.value.get_values_for_type(x509.DNSName)] == ['host1.example.org']
+    assert [str(ip) for ip in san_ext.value.get_values_for_type(x509.IPAddress)] == ['192.0.2.1']
