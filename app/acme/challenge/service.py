@@ -3,9 +3,9 @@ from typing import Literal
 
 import httpx2
 import jwcrypto.jwk
+from config import USER_AGENT, settings
 from fastapi import status
 
-from ...config import USER_AGENT, settings
 from ..exceptions import ACMEException
 
 CHALLENGE_VALIDATION_DEADLINE = 30
