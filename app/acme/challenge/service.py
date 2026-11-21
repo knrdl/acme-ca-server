@@ -32,7 +32,7 @@ async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypt
         err: Literal[False] | ACMEException
         try:
             async with httpx2.AsyncClient(
-                timeout=httpx2.Timeout(connect=3, read=10),
+                timeout=httpx2.Timeout(5, connect=3, read=10),
                 headers={'User-Agent': USER_AGENT},
                 # only http 1.0/1.1 is required, not https
                 verify=False,  # noqa: S501 (https is intentionally disabled)
