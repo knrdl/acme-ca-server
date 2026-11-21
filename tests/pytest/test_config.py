@@ -18,17 +18,17 @@ def test_should_parse_prevalidated_domains(testclient):
 def test_acme_redirects_are_disabled_by_default(monkeypatch):
     from config import AcmeSettings
 
-    monkeypatch.delenv('ACME_REDIRECTS_ENABLED', raising=False)
+    monkeypatch.delenv('ACME_VALIDATION_REDIRECTS', raising=False)
 
-    assert AcmeSettings().redirects_enabled is False
+    assert AcmeSettings().validation_redirects == 'disallow'
 
 
-def test_acme_redirects_env_var_warns_about_ssrf(monkeypatch, caplog):
+def test_acme_open_redirects_env_var_warns_about_ssrf(monkeypatch, caplog):
     from config import AcmeSettings
 
-    monkeypatch.setenv('ACME_REDIRECTS_ENABLED', 'true')
+    monkeypatch.setenv('ACME_VALIDATION_REDIRECTS', 'open')
 
-    assert AcmeSettings().redirects_enabled is True
+    assert AcmeSettings().validation_redirects == 'open'
     assert 'SSRF' in caplog.text
 
 

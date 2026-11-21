@@ -4,6 +4,35 @@ from .conftest import TestClient
 import pytest
 
 
+@pytest.mark.parametrize(
+    ('location', 'expected'),
+    [
+        ('https://example.org/.well-known/acme-challenge/token', True),
+        ('http://example.org/.well-known/acme-challenge/token', False),
+        ('https://other.example/.well-known/acme-challenge/token', False),
+        ('https://example.org:8443/.well-known/acme-challenge/token', False),
+    ],
+)
+def test_http_to_https_redirect_policy(testclient: TestClient, monkeypatch, location: str, expected: bool):
+    from acme.challenge import service
+
+    monkeypatch.setattr(service.settings.acme, 'validation_redirects', 'http-to-https')
+    request = service.httpx2.Request('GET', 'http://example.org/.well-known/acme-challenge/token')
+    response = service.httpx2.Response(302, headers={'location': location}, request=request)
+
+    assert service.redirect_is_allowed(domain='example.org', response=response) is expected
+
+
+def test_open_redirect_policy_allows_redirect_to_other_host(testclient: TestClient, monkeypatch):
+    from acme.challenge import service
+
+    monkeypatch.setattr(service.settings.acme, 'validation_redirects', 'open')
+    request = service.httpx2.Request('GET', 'http://example.org/.well-known/acme-challenge/token')
+    response = service.httpx2.Response(302, headers={'location': 'http://internal.example:8080/path'}, request=request)
+
+    assert service.redirect_is_allowed(domain='example.org', response=response)
+
+
 def test_challenge_validation_deadline(testclient: TestClient, monkeypatch, account_jwk):
     from acme.challenge import service
     from acme.exceptions import ACMEException
@@ -22,6 +51,8 @@ def test_challenge_validation_deadline(testclient: TestClient, monkeypatch, acco
             return SlowResponse()
 
     class SlowResponse:
+        is_redirect = False
+
         async def __aenter__(self):
             await asyncio.sleep(10)
 
@@ -44,6 +75,7 @@ def test_challenge_validation_rejects_oversized_response(testclient: TestClient,
 
     class OversizedResponse:
         status_code = 200
+        is_redirect = False
 
         async def __aenter__(self):
             return self

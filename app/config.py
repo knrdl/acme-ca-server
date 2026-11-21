@@ -84,7 +84,7 @@ class MailSettings(BaseSettings):
 
 class AcmeSettings(BaseSettings):
     terms_of_service_url: AnyHttpUrl | None = None
-    redirects_enabled: bool = False
+    validation_redirects: Literal['disallow', 'http-to-https', 'open'] = 'disallow'
     mail_target_regex: Pattern = re.compile(r'[^@]+@[^@]+\.[^@]+')
     mail_required: bool = True
     target_domain_regex: Pattern = re.compile(r'[^\*]+\.[^\.]+')  # disallow wildcard
@@ -130,9 +130,9 @@ class AcmeSettings(BaseSettings):
 
     @model_validator(mode='after')
     def check_prevalidated_domains(self) -> 'AcmeSettings':
-        if self.redirects_enabled:
+        if self.validation_redirects == 'open':
             logger.warning(
-                'ACME_REDIRECTS_ENABLED is true: following challenge redirects allows '
+                'ACME_VALIDATION_REDIRECTS=open: following challenge redirects allows '
                 'server-side request forgery (SSRF) attacks and access to internal '
                 'services. Restrict outbound network access!'
             )

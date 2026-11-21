@@ -1,15 +1,52 @@
 import asyncio
 from typing import Literal
+from urllib.parse import urljoin
 
 import httpx2
 import jwcrypto.jwk
 from config import USER_AGENT, settings
 from fastapi import status
+from logger import logger
 
 from ..exceptions import ACMEException
 
 CHALLENGE_VALIDATION_DEADLINE = 30
 MAX_CHALLENGE_RESPONSE_SIZE = 1024
+
+
+class UnallowedRedirect(Exception):
+    pass
+
+
+def redirect_is_allowed(*, domain: str, response: httpx2.Response) -> bool:
+    policy = settings.acme.validation_redirects
+
+    if policy == 'open':
+        return True
+
+    if not response.is_redirect:
+        return True
+
+    location = response.headers.get('location')
+    if not location:
+        return False
+
+    if policy == 'disallow':
+        return False
+
+    # http-to-https
+    target = httpx2.URL(urljoin(str(response.request.url), location))
+    # port 443 is the default and therefore set to None by httpx2
+    return target.scheme == 'https' and target.port is None and target.host == domain.lower()
+
+
+def check_redirect(*, domain: str, response: httpx2.Response) -> None:
+    if not response.is_redirect:
+        return
+
+    if not redirect_is_allowed(domain=domain, response=response):
+        logger.warning('Prevented ACME HTTP-01 validation redirect for %s to "%s"', domain, response.headers.get('location', '<missing Location>'))
+        raise UnallowedRedirect
 
 
 async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str | None = None):
@@ -31,6 +68,9 @@ async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypt
     for attempt in range(3):  # 3x retry
         err: Literal[False] | ACMEException
         try:
+            async def check_redirect_hook(response: httpx2.Response) -> None:
+                check_redirect(domain=domain, response=response)
+
             async with httpx2.AsyncClient(
                 timeout=httpx2.Timeout(5, connect=3, read=10),
                 headers={'User-Agent': USER_AGENT},
@@ -38,12 +78,14 @@ async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypt
                 verify=False,  # noqa: S501 (https is intentionally disabled)
                 http1=True,
                 http2=False,
-                follow_redirects=settings.acme.redirects_enabled,
+                follow_redirects=settings.acme.validation_redirects != 'disallow',
                 max_redirects=10,
                 trust_env=False,  # do not load proxy information from env vars
                 limits=httpx2.Limits(max_connections=1, max_keepalive_connections=1),
+                event_hooks={'response': [check_redirect_hook]},
             ) as client:
                 async with client.stream('GET', f'http://{domain}:80/.well-known/acme-challenge/{token}') as res:
+                    check_redirect(domain=domain, response=res)
                     response_body = bytearray()
                     response_too_large = False
                     if res.status_code == 200:
@@ -67,6 +109,8 @@ async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypt
             err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='incorrectResponse', detail='too many redirects', new_nonce=new_nonce)
         except httpx2.ConnectError:
             err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='dns', detail='could not resolve address', new_nonce=new_nonce)
+        except UnallowedRedirect:
+            err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='incorrectResponse', detail='redirect is not allowed', new_nonce=new_nonce)
         except Exception:  # noqa: BLE001
             err = ACMEException(status_code=status.HTTP_400_BAD_REQUEST, exctype='serverInternal', detail='could not validate challenge', new_nonce=new_nonce)
         if err is False:
