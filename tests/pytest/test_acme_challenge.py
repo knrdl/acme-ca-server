@@ -1,7 +1,6 @@
 import asyncio
 
 import pytest
-
 from acme.challenge import service
 from acme.exceptions import ACMEException
 

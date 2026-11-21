@@ -1,6 +1,7 @@
+from typing import Literal
+
 import pytest
 from pydantic import ValidationError
-from typing import Literal
 
 
 def test_should_parse_prevalidated_domains(testclient):

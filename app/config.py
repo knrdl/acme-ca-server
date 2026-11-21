@@ -5,11 +5,10 @@ from pathlib import Path
 from re import Pattern
 from typing import Annotated, Any, Literal
 
+from __about__ import __project_url__, __version__
 from logger import logger
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
-
-from __init__ import __project_url__, __version__
 
 USER_AGENT = f'acme-ca-server/{__version__}' + (f' (+{__project_url__})' if __project_url__ else '')
 
@@ -133,7 +132,9 @@ class AcmeSettings(BaseSettings):
     def check_prevalidated_domains(self) -> 'AcmeSettings':
         if self.redirects_enabled:
             logger.warning(
-                'ACME_REDIRECTS_ENABLED is true: following challenge redirects can enable server-side request forgery (SSRF) and access to internal services. Restrict outbound network access. Disabling redirects does not prevent requests to private IPs resolved from the initial challenge domain.'
+                'ACME_REDIRECTS_ENABLED is true: following challenge redirects allows '
+                'server-side request forgery (SSRF) attacks and access to internal '
+                'services. Restrict outbound network access!'
             )
         for account, domains in self.prevalidated_domains.items():
             for domain in domains:
