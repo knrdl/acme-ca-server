@@ -1,4 +1,4 @@
-FROM docker.io/python:3.14.1-alpine3.23
+FROM docker.io/python:3.15.2-alpine3.24
 
 RUN apk add openssl
 

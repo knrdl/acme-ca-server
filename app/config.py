@@ -6,10 +6,13 @@ from pathlib import Path
 from re import Pattern
 from typing import Annotated, Any, Literal
 
+from __about__ import __project_url__, __version__
 from identifiers import parse_ip
 from logger import logger
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+USER_AGENT = f'acme-ca-server/{__version__}' + (f' (+{__project_url__})' if __project_url__ else '')
 
 
 class WebSettings(BaseSettings):
@@ -83,6 +86,7 @@ class MailSettings(BaseSettings):
 
 class AcmeSettings(BaseSettings):
     terms_of_service_url: AnyHttpUrl | None = None
+    validation_redirects: Literal['disallow', 'http-to-https', 'open'] = 'disallow'
     mail_target_regex: Pattern = re.compile(r'[^@]+@[^@]+\.[^@]+')
     mail_required: bool = True
     # gates dns identifiers only (ip identifiers are gated by target_ip_subnets)
@@ -184,6 +188,12 @@ class AcmeSettings(BaseSettings):
 
     @model_validator(mode='after')
     def check_prevalidated_domains(self) -> 'AcmeSettings':
+        if self.validation_redirects == 'open':
+            logger.warning(
+                'ACME_VALIDATION_REDIRECTS=open: following challenge redirects allows '
+                'server-side request forgery (SSRF) attacks and access to internal '
+                'services. Restrict outbound network access!'
+            )
         for account, domains in self.prevalidated_domains.items():
             for domain in domains:
                 try:

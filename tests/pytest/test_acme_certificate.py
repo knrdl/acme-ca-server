@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from unittest import mock
 
 import httpx2
@@ -9,6 +10,11 @@ from .utils import build_csr, build_ip_csr, build_mixed_csr
 
 _mail_address = 'mailto:dummy@example.com'
 _host = 'example.com'
+
+
+@asynccontextmanager
+async def _challenge_response_stream(response):
+    yield response
 
 
 def test_should_revoke_certificate(signed_request, directory):
@@ -26,12 +32,12 @@ def test_should_revoke_certificate(signed_request, directory):
     mock_challenge_file_contents = f'{challenge_token}.{signed_request.account_jwk.thumbprint()}'.rstrip()
 
     with mock.patch(
-        'app.acme.challenge.service.httpx2.AsyncClient.get',
-        return_value=httpx2.Response(200, text=mock_challenge_file_contents),
-    ) as mock_get:
+        'app.acme.challenge.service.httpx2.AsyncClient.stream',
+        return_value=_challenge_response_stream(httpx2.Response(200, text=mock_challenge_file_contents)),
+    ) as mock_stream:
         response = signed_request(challenge_url, response.headers['Replay-Nonce'], '', account_id)
 
-    mock_get.assert_called_once_with(f'http://{_host}:80/.well-known/acme-challenge/{challenge_token}')
+    mock_stream.assert_called_once_with('GET', f'http://{_host}:80/.well-known/acme-challenge/{challenge_token}')
 
     csr = build_csr([_host])
 
@@ -74,12 +80,12 @@ def test_should_issue_certificate_for_mixed_case_domains(signed_request, directo
     mock_challenge_file_contents = f'{challenge_token}.{signed_request.account_jwk.thumbprint()}'.rstrip()
 
     with mock.patch(
-        'app.acme.challenge.service.httpx2.AsyncClient.get',
-        return_value=httpx2.Response(200, text=mock_challenge_file_contents),
-    ) as mock_get:
+        'app.acme.challenge.service.httpx2.AsyncClient.stream',
+        return_value=_challenge_response_stream(httpx2.Response(200, text=mock_challenge_file_contents)),
+    ) as mock_stream:
         response = signed_request(challenge_url, response.headers['Replay-Nonce'], '', account_id)
 
-    mock_get.assert_called_once_with(f'http://mixed.example.com:80/.well-known/acme-challenge/{challenge_token}')
+    mock_stream.assert_called_once_with('GET', f'http://mixed.example.com:80/.well-known/acme-challenge/{challenge_token}')
 
     csr = build_csr(['MIXED.example.com'])
 

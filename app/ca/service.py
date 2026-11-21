@@ -59,7 +59,14 @@ def load_ca_sync(*, cert_pem, key_pem_enc):
     return ca_cert, ca_key
 
 
-def generate_cert_sync(*, ca_key: PrivateKeyTypes, ca_cert: x509.Certificate, csr: x509.CertificateSigningRequest, subject: Identifier, san_identifiers: list[Identifier]):  # pylint: disable=too-many-locals
+def generate_cert_sync(  # pylint: disable=too-many-locals
+    *,
+    ca_key: PrivateKeyTypes,
+    ca_cert: x509.Certificate,
+    csr: x509.CertificateSigningRequest,
+    subject: Identifier,
+    san_identifiers: list[Identifier],
+):
     ca_id = SerialNumberConverter.int2hex(ca_cert.serial_number)
     subject_type, subject_value = subject
 

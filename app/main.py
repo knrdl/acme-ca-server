@@ -1,5 +1,3 @@
-__version__ = '0.0.0'  # replaced during build, do not change
-
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -8,6 +6,7 @@ import ca
 import db
 import db.migrations
 import web
+from __about__ import __version__
 from acme.exceptions import ACMEException
 from config import settings
 from fastapi import FastAPI, HTTPException, Request, status
