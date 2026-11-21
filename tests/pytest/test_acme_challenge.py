@@ -1,11 +1,13 @@
 import asyncio
+from .conftest import TestClient
 
 import pytest
-from acme.challenge import service
-from acme.exceptions import ACMEException
 
 
-def test_challenge_validation_deadline(monkeypatch, account_jwk):
+def test_challenge_validation_deadline(testclient: TestClient, account_jwk):
+    from acme.challenge import service
+    from acme.exceptions import ACMEException
+
     class SlowClient:
         def __init__(self, **_kwargs):
             pass
@@ -36,7 +38,10 @@ def test_challenge_validation_deadline(monkeypatch, account_jwk):
     assert exc_info.value.detail == 'challenge validation deadline exceeded'
 
 
-def test_challenge_validation_rejects_oversized_response(monkeypatch, account_jwk):
+def test_challenge_validation_rejects_oversized_response(testclient: TestClient, monkeypatch, account_jwk):
+    from acme.challenge import service
+    from acme.exceptions import ACMEException
+
     class OversizedResponse:
         status_code = 200
 
@@ -66,7 +71,6 @@ def test_challenge_validation_rejects_oversized_response(monkeypatch, account_jw
         pass
 
     monkeypatch.setattr(service.httpx2, 'AsyncClient', Client)
-    monkeypatch.setattr(service.asyncio, 'sleep', no_sleep)
 
     with pytest.raises(ACMEException) as exc_info:
         asyncio.run(service.check_challenge_is_fulfilled(domain='example.org', token='token', jwk=account_jwk))
