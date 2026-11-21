@@ -19,10 +19,11 @@ jobs:
 
       - name: apply version tag
         run: |
+          sed -i "s|__project_url__ = '.*'|__project_url__ = '${{ github.server_url }}/${{ github.repository }}'|" app/__init__.py
           if [ "${{ github.ref_type }}" == "tag" ]; then
-            sed -i "s/'0.0.0'/'${{ github.ref_name }}'/" app/main.py
+            sed -i "s/'0.0.0'/'${{ github.ref_name }}'/" app/__init__.py
           else
-            sed -i "s/'0.0.0'/'edge'/" app/main.py
+            sed -i "s/'0.0.0'/'edge'/" app/__init__.py
           fi
 
       - name: Docker meta

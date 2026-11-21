@@ -9,6 +9,10 @@ from logger import logger
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from __init__ import __project_url__, __version__
+
+USER_AGENT = f'acme-ca-server/{__version__}' + (f' (+{__project_url__})' if __project_url__ else '')
+
 
 class WebSettings(BaseSettings):
     enabled: bool = True
@@ -81,6 +85,7 @@ class MailSettings(BaseSettings):
 
 class AcmeSettings(BaseSettings):
     terms_of_service_url: AnyHttpUrl | None = None
+    redirects_enabled: bool = False
     mail_target_regex: Pattern = re.compile(r'[^@]+@[^@]+\.[^@]+')
     mail_required: bool = True
     target_domain_regex: Pattern = re.compile(r'[^\*]+\.[^\.]+')  # disallow wildcard
@@ -126,6 +131,10 @@ class AcmeSettings(BaseSettings):
 
     @model_validator(mode='after')
     def check_prevalidated_domains(self) -> 'AcmeSettings':
+        if self.redirects_enabled:
+            logger.warning(
+                'ACME_REDIRECTS_ENABLED is true: following challenge redirects can enable server-side request forgery (SSRF) and access to internal services. Restrict outbound network access. Disabling redirects does not prevent requests to private IPs resolved from the initial challenge domain.'
+            )
         for account, domains in self.prevalidated_domains.items():
             for domain in domains:
                 if not self.target_domain_regex_pattern.fullmatch(domain):
