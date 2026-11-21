@@ -49,10 +49,15 @@ def check_redirect(*, domain: str, response: httpx2.Response) -> None:
         raise UnallowedRedirect
 
 
-async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str | None = None):
+def _challenge_host(identifier_type: str, identifier: str) -> str:
+    """IPv6 literals must be enclosed in square brackets when used as a hostname."""
+    return f'[{identifier}]' if identifier_type == 'ip' and ':' in identifier else identifier
+
+
+async def check_challenge_is_fulfilled(*, identifier_type: str = 'dns', domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str | None = None):
     try:
         await asyncio.wait_for(
-            _check_challenge_is_fulfilled(domain=domain, token=token, jwk=jwk, new_nonce=new_nonce),
+            _check_challenge_is_fulfilled(identifier_type=identifier_type, domain=domain, token=token, jwk=jwk, new_nonce=new_nonce),
             timeout=CHALLENGE_VALIDATION_DEADLINE,
         )
     except asyncio.TimeoutError:
@@ -64,7 +69,7 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
         ) from None
 
 
-async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str | None = None):
+async def _check_challenge_is_fulfilled(*, identifier_type: str = 'dns', domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str | None = None):
     for attempt in range(3):  # 3x retry
         err: Literal[False] | ACMEException
         try:
@@ -84,7 +89,7 @@ async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypt
                 limits=httpx2.Limits(max_connections=1, max_keepalive_connections=1),
                 event_hooks={'response': [check_redirect_hook]},
             ) as client:
-                async with client.stream('GET', f'http://{domain}:80/.well-known/acme-challenge/{token}') as res:
+                async with client.stream('GET', f'http://{_challenge_host(identifier_type, domain)}:80/.well-known/acme-challenge/{token}') as res:
                     check_redirect(domain=domain, response=res)
                     response_body = bytearray()
                     response_too_large = False

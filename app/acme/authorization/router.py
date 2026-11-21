@@ -24,7 +24,7 @@ async def view_or_update_authorization(
     async with db.transaction(readonly=True) as sql:
         record = await sql.record(
             """
-            select authz.status, ord.status, ord.expires_at, authz.domain, chal.id, chal.token, chal.status, chal.validated_at
+            select authz.status, ord.status, ord.expires_at, authz.identifier_value, authz.identifier_type, chal.id, chal.token, chal.status, chal.validated_at
             from authorizations authz
             join challenges chal on chal.authz_id = authz.id
             join orders ord on authz.order_id = ord.id
@@ -34,7 +34,7 @@ async def view_or_update_authorization(
             data.account_id,
         )
     if record:
-        authz_status, order_status, expires_at, domain, chal_id, chal_token, chal_status, chal_validated_at = record
+        authz_status, order_status, expires_at, identifier_value, identifier_type, chal_id, chal_token, chal_status, chal_validated_at = record
         if data.payload and data.payload.status == 'deactivated' and authz_status in ['pending', 'valid'] and order_status in ['pending', 'ready']:
             async with db.transaction() as sql:
                 await sql.exec(
@@ -56,7 +56,7 @@ async def view_or_update_authorization(
         return {
             'status': authz_status,
             'expires': expires_at,
-            'identifier': {'type': 'dns', 'value': domain},
+            'identifier': {'type': identifier_type, 'value': identifier_value},
             'challenges': [{k: v for k, v in chal.items() if v is not None}],
         }
     else:

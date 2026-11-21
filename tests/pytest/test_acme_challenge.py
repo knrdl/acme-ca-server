@@ -1,7 +1,8 @@
 import asyncio
-from .conftest import TestClient
 
 import pytest
+
+from .conftest import TestClient
 
 
 @pytest.mark.parametrize(

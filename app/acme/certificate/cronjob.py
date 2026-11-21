@@ -17,7 +17,7 @@ async def start():
                             """
                             with
                                 expiring_domains as (
-                                    select authz.domain, acc.mail, cert.serial_number, cert.not_valid_after from certificates cert
+                                    select authz.identifier_value, acc.mail, cert.serial_number, cert.not_valid_after from certificates cert
                                         join orders ord on cert.order_id = ord.id
                                         join accounts acc on ord.account_id = acc.id
                                         join authorizations authz on authz.order_id = ord.id
@@ -26,20 +26,20 @@ async def start():
                                         or
                                         (cert.not_valid_after < now() and not cert.user_informed_cert_has_expired)
                                     )
-                                    order by authz.domain
+                                    order by authz.identifier_value
                                 ),
                                 newest_domains as (
-                                    select authz.domain, max(cert.not_valid_after) as not_valid_after from orders ord
+                                    select authz.identifier_value, max(cert.not_valid_after) as not_valid_after from orders ord
                                         join authorizations authz on authz.order_id = ord.id
                                         join certificates cert on cert.order_id = ord.id
-                                        join expiring_domains exp on exp.domain = authz.domain
-                                    group by authz.domain
+                                        join expiring_domains exp on exp.identifier_value = authz.identifier_value
+                                    group by authz.identifier_value
                                 )
-                            select expd.mail, expd.serial_number, expd.not_valid_after, expd.not_valid_after < now() as is_expired, array_agg(expd.domain) as domains
+                            select expd.mail, expd.serial_number, expd.not_valid_after, expd.not_valid_after < now() as is_expired, array_agg(expd.identifier_value) as domains
                                 from expiring_domains expd
-                                join newest_domains newd on expd.domain = newd.domain and expd.not_valid_after = newd.not_valid_after
+                                join newest_domains newd on expd.identifier_value = newd.identifier_value and expd.not_valid_after = newd.not_valid_after
                             group by expd.mail, expd.serial_number, expd.not_valid_after
-                                having array_length(array_agg(expd.domain), 1) > 0 and expd.mail is not null
+                                having array_length(array_agg(expd.identifier_value), 1) > 0 and expd.mail is not null
                             """,
                             settings.mail.warn_before_cert_expires,
                         )

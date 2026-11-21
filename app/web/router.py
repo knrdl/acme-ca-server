@@ -41,10 +41,10 @@ if settings.web.enable_public_log:
                             (not_valid_after > now() and revoked_at is null) as is_valid,
                             (not_valid_after - not_valid_before) as lifetime,
                             (now() - not_valid_before) as age,
-                            array_agg(domain order by domain) as domains
+                            array_agg(identifier_value order by identifier_value) as domains
                         from certificates cert
                         join authorizations authz on authz.order_id = cert.order_id
-                        where ($1::text = '' or authz.domain ilike '%' || $1::text || '%')
+                        where ($1::text = '' or authz.identifier_value ilike '%' || $1::text || '%')
                         group by serial_number
                     )
                     select * from data
@@ -75,15 +75,15 @@ if settings.web.enable_public_log:
                     """
                     with data as (
                         select
-                            authz.domain as domain_name,
+                            authz.identifier_value as domain_name,
                             min(cert.not_valid_before) as first_requested_at,
                             max(cert.not_valid_after) as expires_at,
                             (max(cert.not_valid_after) FILTER (WHERE revoked_at is null)) > now() AS is_valid
                         from orders ord
                         join authorizations authz on authz.order_id = ord.id
                         join certificates cert on cert.order_id = ord.id
-                        where ($1::text = '' or authz.domain ilike '%' || $1::text || '%')
-                        group by authz.domain
+                        where ($1::text = '' or authz.identifier_value ilike '%' || $1::text || '%')
+                        group by authz.identifier_value
                     )
                     select * from data
                     where ($2 = 'all' or ($2 = 'valid' and is_valid) or ($2 = 'invalid' and not is_valid))

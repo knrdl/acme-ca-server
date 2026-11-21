@@ -1,13 +1,15 @@
 import re
 import sys
 from datetime import timedelta
+from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_network
 from pathlib import Path
 from re import Pattern
 from typing import Annotated, Any, Literal
 
 from __about__ import __project_url__, __version__
+from identifiers import parse_ip
 from logger import logger
-from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, field_validator, model_validator
+from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 USER_AGENT = f'acme-ca-server/{__version__}' + (f' (+{__project_url__})' if __project_url__ else '')
@@ -87,10 +89,17 @@ class AcmeSettings(BaseSettings):
     validation_redirects: Literal['disallow', 'http-to-https', 'open'] = 'disallow'
     mail_target_regex: Pattern = re.compile(r'[^@]+@[^@]+\.[^@]+')
     mail_required: bool = True
+    # gates dns identifiers only (ip identifiers are gated by target_ip_subnets)
     target_domain_regex: Pattern = re.compile(r'[^\*]+\.[^\.]+')  # disallow wildcard
+
+    # only ip identifiers within these subnets are accepted; empty (default) disallows all ip certificates
+    target_ip_subnets: Annotated[frozenset[IPv4Network | IPv6Network], NoDecode] = frozenset()
 
     # one line per account: <account jwk thumbprint>:<domain a>,<domain b>
     prevalidated_domains: Annotated[dict[str, frozenset[str]], NoDecode] = {}
+
+    # one line per account: <account jwk thumbprint>:<subnet a>,<subnet b>
+    prevalidated_ip_subnets: Annotated[dict[str, frozenset[IPv4Network | IPv6Network]], NoDecode] = {}
 
     model_config = SettingsConfigDict(env_prefix='acme_', secrets_dir='/run/secrets')
 
@@ -104,12 +113,34 @@ class AcmeSettings(BaseSettings):
         pattern = f'^{self.target_domain_regex.pattern.strip().removeprefix("^").removesuffix("$")}$'
         return re.compile(pattern)
 
+    def is_ip_allowed(self, ip: IPv4Address | IPv6Address) -> bool:
+        return any(ip in subnet for subnet in self.target_ip_subnets)
+
+    def is_ip_prevalidated(self, account_thumbprint: str, ip: IPv4Address | IPv6Address) -> bool:
+        return any(ip in subnet for subnet in self.prevalidated_ip_subnets.get(account_thumbprint, frozenset()))
+
     @field_validator('mail_target_regex', 'target_domain_regex')
     @classmethod
     def pattern_must_be_lowercase(cls, value: Pattern) -> Pattern:
         if value.pattern != value.pattern.lower():
             logger.warning('Regex pattern should be lowercase only, got %r', value.pattern)
         return value
+
+    @field_validator('target_ip_subnets', mode='before')
+    @classmethod
+    def parse_target_ip_subnets(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        subnets = []
+        for entry in value.split(','):
+            entry = entry.strip()
+            if not entry:
+                continue
+            try:
+                subnets.append(ip_network(entry, strict=False))
+            except ValueError:
+                raise ValueError(f'Invalid entry "{entry}" in acme_target_ip_subnets, expected comma separated subnets, e.g. 192.168.1.0/24, fd00:db8::/64') from None
+        return subnets
 
     @field_validator('prevalidated_domains', mode='before')
     @classmethod
@@ -128,6 +159,33 @@ class AcmeSettings(BaseSettings):
             result.setdefault(account, set()).update(domain_set)
         return result
 
+    @field_validator('prevalidated_ip_subnets', mode='before')
+    @classmethod
+    def parse_prevalidated_ip_subnets(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        result: dict[str, set[IPv4Network | IPv6Network]] = {}
+        for entry in value.splitlines():
+            if not entry.strip():
+                continue
+            account, sep, subnets = entry.partition(':')
+            account = account.strip()
+            subnet_set: set[IPv4Network | IPv6Network] = set()
+            for subnet in subnets.split(','):
+                subnet = subnet.strip()
+                if not subnet:
+                    continue
+                try:
+                    subnet_set.add(ip_network(subnet, strict=False))
+                except ValueError:
+                    raise ValueError(
+                        f'Invalid entry "{entry.strip()}" in acme_prevalidated_ip_subnets, expected format: one line per account, <account>:<subnet a>,<subnet b>'
+                    ) from None
+            if not sep or not account or not subnet_set:
+                raise ValueError(f'Invalid entry "{entry.strip()}" in acme_prevalidated_ip_subnets, expected format: one line per account, <account>:<subnet a>,<subnet b>')
+            result.setdefault(account, set()).update(subnet_set)
+        return result
+
     @model_validator(mode='after')
     def check_prevalidated_domains(self) -> 'AcmeSettings':
         if self.validation_redirects == 'open':
@@ -138,8 +196,17 @@ class AcmeSettings(BaseSettings):
             )
         for account, domains in self.prevalidated_domains.items():
             for domain in domains:
-                if not self.target_domain_regex_pattern.fullmatch(domain):
-                    raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains does not match acme_target_domain_regex')
+                try:
+                    parse_ip(domain)
+                except ValidationError:
+                    # a domain must match the domain regex
+                    if not self.target_domain_regex_pattern.fullmatch(domain):
+                        raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains does not match acme_target_domain_regex') from None
+                else:
+                    # only domains belong in prevalidated_domains, IP addresses go into prevalidated_ip_subnets
+                    raise ValueError(
+                        f'IP address "{domain}" of account "{account}" is not allowed in acme_prevalidated_domains; specify IP addresses in acme_prevalidated_ip_subnets instead'
+                    ) from None
         return self
 
 
