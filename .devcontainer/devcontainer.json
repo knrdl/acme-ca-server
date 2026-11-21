@@ -1,6 +1,6 @@
 {
   "name": "acme-ca-server",
-  "image": "mcr.microsoft.com/devcontainers/python:3.14-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/python:3.15-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "version": "latest",
