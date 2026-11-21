@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import ClassVar
 from unittest import mock
 
 import httpx2
@@ -106,6 +107,43 @@ def _solve_challenge(signed_request, authz_response):
     return challenge_token, challenge_url, mock_challenge_file_contents
 
 
+def _mock_stream_client(contents: str):
+    """Return an httpx2.AsyncClient stub that serves the challenge body via stream() (mirrors httpx2 usage)."""
+
+    body = contents.encode()
+
+    class FakeResponse:
+        status_code = 200
+        is_redirect = False
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            pass
+
+        async def aiter_bytes(self, *, chunk_size):
+            yield body
+
+    class FakeClient:
+        calls: ClassVar[list[str]] = []
+
+        def __init__(self, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            pass
+
+        def stream(self, _method, url):
+            FakeClient.calls.append(url)
+            return FakeResponse()
+
+    return FakeClient
+
+
 def test_should_issue_certificate_for_ip_address(signed_request, directory, allowed_ip_subnets):
     response = signed_request(directory['newAccount'], signed_request.nonce, {'contact': [_mail_address]})
     account_id = response.headers['Location']
@@ -121,13 +159,10 @@ def test_should_issue_certificate_for_ip_address(signed_request, directory, allo
     assert response.json()['identifier'] == {'type': 'ip', 'value': ip}, response.json()
     challenge_token, challenge_url, mock_challenge_file_contents = _solve_challenge(signed_request, response)
 
-    with mock.patch(
-        'app.acme.challenge.service.httpx2.AsyncClient.get',
-        return_value=httpx2.Response(200, text=mock_challenge_file_contents),
-    ) as mock_get:
+    with mock.patch('app.acme.challenge.service.httpx2.AsyncClient', _mock_stream_client(mock_challenge_file_contents)) as client_cls:
         response = signed_request(challenge_url, response.headers['Replay-Nonce'], '', account_id)
 
-    mock_get.assert_called_once_with(f'http://{ip}:80/.well-known/acme-challenge/{challenge_token}')
+    assert client_cls.calls == [f'http://{ip}:80/.well-known/acme-challenge/{challenge_token}']
     assert response.json()['status'] == 'valid', response.json()
 
     csr = build_ip_csr([ip])
@@ -160,14 +195,11 @@ def test_should_issue_certificate_for_ipv6_address(signed_request, directory, al
     assert response.json()['identifier'] == {'type': 'ip', 'value': ip}, response.json()
     challenge_token, challenge_url, mock_challenge_file_contents = _solve_challenge(signed_request, response)
 
-    with mock.patch(
-        'app.acme.challenge.service.httpx2.AsyncClient.get',
-        return_value=httpx2.Response(200, text=mock_challenge_file_contents),
-    ) as mock_get:
+    with mock.patch('app.acme.challenge.service.httpx2.AsyncClient', _mock_stream_client(mock_challenge_file_contents)) as client_cls:
         response = signed_request(challenge_url, response.headers['Replay-Nonce'], '', account_id)
 
     # IPv6 literals are enclosed in square brackets in the challenge URL
-    mock_get.assert_called_once_with(f'http://[{ip}]:80/.well-known/acme-challenge/{challenge_token}')
+    assert client_cls.calls == [f'http://[{ip}]:80/.well-known/acme-challenge/{challenge_token}']
     assert response.json()['status'] == 'valid', response.json()
 
     csr = build_ip_csr([ip])
@@ -200,10 +232,7 @@ def test_should_issue_certificate_for_mixed_domain_and_ip(signed_request, direct
     for authz_url in authz_urls:
         response = signed_request(authz_url, response.headers['Replay-Nonce'], '', account_id)
         _challenge_token, challenge_url, mock_challenge_file_contents = _solve_challenge(signed_request, response)
-        with mock.patch(
-            'app.acme.challenge.service.httpx2.AsyncClient.get',
-            return_value=httpx2.Response(200, text=mock_challenge_file_contents),
-        ):
+        with mock.patch('app.acme.challenge.service.httpx2.AsyncClient', _mock_stream_client(mock_challenge_file_contents)):
             response = signed_request(challenge_url, response.headers['Replay-Nonce'], '', account_id)
         assert response.json()['status'] == 'valid', response.json()
 
