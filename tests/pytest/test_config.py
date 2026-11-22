@@ -15,21 +15,20 @@ def test_should_parse_prevalidated_domains(testclient):
     }
 
 
-def test_acme_redirects_are_disabled_by_default(monkeypatch):
+def test_acme_redirect_hosts_are_disabled_by_default(monkeypatch):
     from config import AcmeSettings
 
-    monkeypatch.delenv('ACME_VALIDATION_REDIRECTS', raising=False)
+    monkeypatch.delenv('ACME_VALIDATION_REDIRECT_HOSTS', raising=False)
 
-    assert AcmeSettings().validation_redirects == 'disallow'
+    assert AcmeSettings().validation_redirect_hosts == frozenset()
 
 
-def test_acme_open_redirects_env_var_warns_about_ssrf(monkeypatch, caplog):
+def test_acme_redirect_hosts_env_var(monkeypatch):
     from config import AcmeSettings
 
-    monkeypatch.setenv('ACME_VALIDATION_REDIRECTS', 'open')
+    monkeypatch.setenv('ACME_VALIDATION_REDIRECT_HOSTS', 'certmgr.example.org, certmgr2.example.org')
 
-    assert AcmeSettings().validation_redirects == 'open'
-    assert 'SSRF' in caplog.text
+    assert AcmeSettings().validation_redirect_hosts == frozenset({'certmgr.example.org', 'certmgr2.example.org'})
 
 
 @pytest.mark.parametrize('value', ['acc1', 'acc1:', ':host1.example.org', 'acc1:host1.example.org\nbroken'])

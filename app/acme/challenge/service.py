@@ -19,11 +19,6 @@ class UnallowedRedirect(Exception):
 
 
 def redirect_is_allowed(*, domain: str, response: httpx2.Response) -> bool:
-    policy = settings.acme.validation_redirects
-
-    if policy == 'open':
-        return True
-
     if not response.is_redirect:
         return True
 
@@ -31,13 +26,18 @@ def redirect_is_allowed(*, domain: str, response: httpx2.Response) -> bool:
     if not location:
         return False
 
-    if policy == 'disallow':
+    target = httpx2.URL(urljoin(str(response.request.url), location))
+    target_host = target.host.lower() if target.host else ''
+
+    if not target_host:
         return False
 
-    # http-to-https
-    target = httpx2.URL(urljoin(str(response.request.url), location))
-    # port 443 is the default and therefore set to None by httpx2
-    return target.scheme == 'https' and target.port is None and target.host == domain.lower()
+    if target_host in settings.acme.validation_redirect_hosts:
+        return True
+
+    # Always allow an HTTP-to-HTTPS upgrade on the challenged domain.
+    # port 443 is the default and therefore set to None by httpx2.
+    return target.scheme == 'https' and target.port is None and target_host == domain.lower()
 
 
 def check_redirect(*, domain: str, response: httpx2.Response) -> None:
@@ -78,7 +78,7 @@ async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypt
                 verify=False,  # noqa: S501 (https cert check is intentionally disabled)
                 http1=True,
                 http2=False,
-                follow_redirects=settings.acme.validation_redirects != 'disallow',
+                follow_redirects=True,  # see redirect_is_allowed()
                 max_redirects=10,
                 trust_env=False,  # do not load proxy information from env vars
                 limits=httpx2.Limits(max_connections=1, max_keepalive_connections=1),

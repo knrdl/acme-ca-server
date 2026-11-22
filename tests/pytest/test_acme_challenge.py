@@ -1,7 +1,8 @@
 import asyncio
-from .conftest import TestClient
 
 import pytest
+
+from .conftest import TestClient
 
 
 @pytest.mark.parametrize(
@@ -16,17 +17,17 @@ import pytest
 def test_http_to_https_redirect_policy(testclient: TestClient, monkeypatch, location: str, expected: bool):
     from acme.challenge import service
 
-    monkeypatch.setattr(service.settings.acme, 'validation_redirects', 'http-to-https')
+    monkeypatch.setattr(service.settings.acme, 'validation_redirect_hosts', frozenset())
     request = service.httpx2.Request('GET', 'http://example.org/.well-known/acme-challenge/token')
     response = service.httpx2.Response(302, headers={'location': location}, request=request)
 
     assert service.redirect_is_allowed(domain='example.org', response=response) is expected
 
 
-def test_open_redirect_policy_allows_redirect_to_other_host(testclient: TestClient, monkeypatch):
+def test_redirect_allowlist_allows_redirect_to_configured_host(testclient: TestClient, monkeypatch):
     from acme.challenge import service
 
-    monkeypatch.setattr(service.settings.acme, 'validation_redirects', 'open')
+    monkeypatch.setattr(service.settings.acme, 'validation_redirect_hosts', frozenset({'internal.example'}))
     request = service.httpx2.Request('GET', 'http://example.org/.well-known/acme-challenge/token')
     response = service.httpx2.Response(302, headers={'location': 'http://internal.example:8080/path'}, request=request)
 
