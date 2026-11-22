@@ -34,6 +34,22 @@ def test_redirect_allowlist_allows_redirect_to_configured_host(testclient: TestC
     assert service.redirect_is_allowed(domain='example.org', response=response)
 
 
+def test_rejected_redirect_warning(testclient: TestClient, monkeypatch, caplog):
+    from acme.challenge import service
+
+    monkeypatch.setattr(service.settings.acme, 'validation_redirect_hosts', frozenset())
+    request = service.httpx2.Request('GET', 'http://example.org/.well-known/acme-challenge/token')
+    response = service.httpx2.Response(302, headers={'location': 'http://other.example.org/path'}, request=request)
+
+    with pytest.raises(service.UnallowedRedirect):
+        service.check_redirect(domain='example.org', response=response)
+
+    assert 'ACME HTTP-01 validation redirect blocked' in caplog.text
+    assert 'challenged_domain=example.org' in caplog.text
+    assert 'redirect_target=http://other.example.org/path' in caplog.text
+    assert 'reason: host not in ACME_VALIDATION_REDIRECT_HOSTS' in caplog.text
+
+
 def test_challenge_validation_deadline(testclient: TestClient, monkeypatch, account_jwk):
     from acme.challenge import service
     from acme.exceptions import ACMEException

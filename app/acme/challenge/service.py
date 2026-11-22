@@ -45,7 +45,13 @@ def check_redirect(*, domain: str, response: httpx2.Response) -> None:
         return
 
     if not redirect_is_allowed(domain=domain, response=response):
-        logger.warning('Prevented ACME HTTP-01 validation redirect for %s to "%s"', domain, response.headers.get('location', '<missing Location>'))
+        location = response.headers.get('location')
+        target = str(httpx2.URL(urljoin(str(response.request.url), location))) if location else '<missing Location>'
+        logger.warning(
+            'ACME HTTP-01 validation redirect blocked | challenged_domain=%s | redirect_target=%s | reason: host not in ACME_VALIDATION_REDIRECT_HOSTS',
+            domain,
+            target,
+        )
         raise UnallowedRedirect
 
 
