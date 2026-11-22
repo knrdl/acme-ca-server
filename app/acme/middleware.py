@@ -58,7 +58,7 @@ class Protected(BaseModel):
 class SignedRequest:  # pylint: disable=too-few-public-methods
     def __init__(
         self,
-        payload_model: BaseModel | None = None,
+        payload_model: type[BaseModel] | None = None,
         *,
         allow_new_account: bool = False,
         allow_blocked_account: bool = False,
@@ -126,8 +126,9 @@ class SignedRequest:  # pylint: disable=too-few-public-methods
         except jwcrypto.jws.InvalidJWSSignature as exc:
             raise ACMEException(status_code=status.HTTP_403_FORBIDDEN, exctype='unauthorized', detail='signature check failed') from exc
 
-        if self.payload_model and payload:
-            payload_data = self.payload_model(**json.loads(base64url_decode(payload)))  # type: ignore[operator]
+        if self.payload_model:
+            decoded_payload = base64url_decode(payload) if payload else b'{}'
+            payload_data = self.payload_model(**(json.loads(decoded_payload)))
         else:
             payload_data = None
 

@@ -138,3 +138,29 @@ def test_should_lowercase_domains(signed_request, directory):
         response = signed_request(authz_url, response.headers['Replay-Nonce'], '', account_id)
         authz_values.append(response.json()['identifier']['value'])
     assert sorted(authz_values) == ['host1.example.org', 'host2.example.org']
+
+
+def test_should_view_and_deactivate_authorization(signed_request, directory):
+    response = signed_request(directory['newAccount'], signed_request.nonce, {})
+    account_id = response.headers['Location']
+
+    response = signed_request(
+        directory['newOrder'],
+        response.headers['Replay-Nonce'],
+        {'identifiers': [{'type': 'dns', 'value': 'host1.example.org'}]},
+        account_id,
+    )
+    assert response.status_code == 201, response.json()
+    authz_url = response.json()['authorizations'][0]
+
+    response = signed_request(authz_url, response.headers['Replay-Nonce'], '', account_id)
+    assert response.status_code == 200, response.json()
+    assert response.json()['status'] == 'pending'
+
+    response = signed_request(authz_url, response.headers['Replay-Nonce'], {}, account_id)
+    assert response.status_code == 200, response.json()
+    assert response.json()['status'] == 'pending'
+
+    response = signed_request(authz_url, response.headers['Replay-Nonce'], {'status': 'deactivated'}, account_id)
+    assert response.status_code == 200, response.json()
+    assert response.json()['status'] == 'deactivated'
