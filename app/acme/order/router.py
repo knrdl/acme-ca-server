@@ -6,10 +6,11 @@ from typing import Annotated, Literal
 import db
 from ca import service as ca_service
 from config import settings
+from dnsname import ascii_dns_hostname
 from fastapi import APIRouter, Depends, Response, status
 from jwcrypto.common import base64url_decode
 from logger import logger
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from ..certificate.service import SerialNumberConverter, check_csr
 from ..exceptions import ACMEException
@@ -19,6 +20,17 @@ from ..middleware import RequestData, SignedRequest
 class NewOrderDomain(BaseModel):
     type: Literal['dns']  # noqa: A003 (allow shadowing builtin "type")
     value: Annotated[str, StringConstraints(to_lower=True, pattern=settings.acme.target_domain_regex_pattern)]
+
+    @field_validator('value')
+    @classmethod
+    def value_must_be_hostname(cls, value: str) -> str:
+        # The domain regex is a policy filter. It still matches ":" "/" "?" so
+        # those have to be rejected here before the name is stored or requested.
+        try:
+            ascii_dns_hostname(value)
+        except ValueError as exc:
+            raise ValueError('identifier is not a valid hostname') from exc
+        return value
 
 
 class NewOrderPayload(BaseModel):

@@ -103,6 +103,13 @@ def test_should_accept_prevalidated_domains_matching_custom_target_domain_regex(
     assert settings.prevalidated_domains == {'acc1': frozenset({'host1.example.org'})}
 
 
+def test_should_reject_prevalidated_domain_that_is_not_a_hostname():
+    from config import AcmeSettings
+
+    with pytest.raises(ValidationError, match='is not a valid hostname'):
+        AcmeSettings(target_domain_regex=r'[^\*]+\.mydomain\.org', prevalidated_domains='acc1:attacker.com/?.mydomain.org')
+
+
 def test_should_match_whole_domain_against_target_domain_regex(testclient):
     from config import AcmeSettings
 

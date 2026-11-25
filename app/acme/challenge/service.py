@@ -5,6 +5,7 @@ from urllib.parse import urljoin
 import httpx2
 import jwcrypto.jwk
 from config import USER_AGENT, settings
+from dnsname import ascii_dns_hostname, http01_challenge_url
 from fastapi import status
 from logger import logger
 
@@ -71,12 +72,23 @@ async def check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto
 
 
 async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypto.jwk.JWK, new_nonce: str | None = None):
+    try:
+        url = http01_challenge_url(domain, token)
+        host = ascii_dns_hostname(domain)
+    except ValueError:
+        raise ACMEException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            exctype='malformed',
+            detail='identifier is not a valid hostname',
+            new_nonce=new_nonce,
+        ) from None
+
     for attempt in range(3):  # 3x retry
         err: Literal[False] | ACMEException
         try:
 
             async def check_redirect_hook(response: httpx2.Response) -> None:
-                check_redirect(domain=domain, response=response)
+                check_redirect(domain=host, response=response)
 
             async with httpx2.AsyncClient(
                 timeout=httpx2.Timeout(5, connect=3, read=10),
@@ -90,8 +102,8 @@ async def _check_challenge_is_fulfilled(*, domain: str, token: str, jwk: jwcrypt
                 limits=httpx2.Limits(max_connections=1, max_keepalive_connections=1),
                 event_hooks={'response': [check_redirect_hook]},
             ) as client:
-                async with client.stream('GET', f'http://{domain}:80/.well-known/acme-challenge/{token}') as res:
-                    check_redirect(domain=domain, response=res)
+                async with client.stream('GET', url) as res:
+                    check_redirect(domain=host, response=res)
                     response_body = bytearray()
                     response_too_large = False
                     if res.status_code == 200:
