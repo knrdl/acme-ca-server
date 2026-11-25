@@ -6,6 +6,7 @@ from re import Pattern
 from typing import Annotated, Any, Literal
 
 from __about__ import __project_url__, __version__
+from dnsname import ascii_dns_hostname
 from logger import logger
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -141,6 +142,10 @@ class AcmeSettings(BaseSettings):
             for domain in domains:
                 if not self.target_domain_regex_pattern.fullmatch(domain):
                     raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains does not match acme_target_domain_regex')
+                try:
+                    ascii_dns_hostname(domain)
+                except ValueError:
+                    raise ValueError(f'Domain "{domain}" of account "{account}" in acme_prevalidated_domains is not a valid hostname') from None
         return self
 
 
